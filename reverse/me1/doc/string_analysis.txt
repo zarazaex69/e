@@ -1,0 +1,19 @@
+================================
+Key Findings from String Dump
+================================
+
+Analysis of 11,000+ strings provided crucial context about the internal OS.
+
+Key Subsystems Identified:
+--------------------------
+1.  **Kernel / Memory Management:**
+    - "KernelPriv" & "KernelNonPriv": Indicates a privileged kernel space and a non-privileged user space. A classic OS architecture.
+
+2.  **Module Loader / Overlays:**
+    - "MOFFM0_OVL", "MOFFM1_OVL": Strings strongly suggest a system for loading modules/overlays from flash into RAM. "M OFF M" likely means "Module Offset".
+
+3.  **Security / Cryptography:**
+    - "KEY14" through "KEY31": A clear list of named cryptographic keys.
+    - "SHA": Found, confirming use of standard hashing algorithms.
+
+These strings prove the firmware is a small, modular Real-Time Operating System (RTOS) with a separation of privileges and a secure loading mechanism.
