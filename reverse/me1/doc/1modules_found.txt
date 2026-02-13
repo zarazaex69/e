@@ -1,0 +1,12 @@
+=========================
+LZMA Decompression Issues
+=========================
+
+Standard `unlzma` utility failed with "File format not recognized".
+
+Hypothesis:
+-----------
+Intel uses a custom LZMA implementation. The stream is likely raw, without the standard 13-byte header.
+All metadata (sizes, properties) is probably stored externally in the $MAN module manifest.
+
+Next step: Reverse engineer the $MAN manifest structure to find the required decompression parameters.
