@@ -1,0 +1,80 @@
+m1u - Intel ME Firmware Module Extractor
+========================================
+
+Utility for extracting and decompressing modules from Intel Management Engine firmware.
+
+FEATURES
+--------
+- FPT (Flash Partition Table) parsing
+- CODE partition and $MAN manifest detection
+- Module extraction by name
+- LZMA decompression (Intel ME custom format)
+- Uncompressed module support
+
+USAGE
+-----
+./m1u <firmware.bin> <module_name>
+
+Examples:
+  ./m1u me1x200.bin KernelPriv
+  ./m1u me1x200.bin BRINGUP
+  ./m1u me1x200.bin PRELOADER
+
+OUTPUT
+------
+Extracted modules are saved to out/ directory
+Format: out/<module_name>.bin
+
+BUILD
+-----
+make
+
+Requirements:
+- zig cc
+- liblzma (xz-utils)
+
+TECHNICAL DETAILS
+-----------------
+Intel ME uses a custom LZMA format:
+- 1 byte: properties (lc, lp, pb)
+- 4 bytes: dictionary size
+- Compressed data (WITHOUT 8-byte uncompressed_size field)
+
+The program automatically converts to standard LZMA Alone format
+by adding the correct uncompressed_size from $MOD entry.
+
+$MOD ENTRY STRUCTURE
+--------------------
+Offset  Size    Field
+------  ----    -----
+0x00    4       Signature ($MOD)
+0x04    4       Module ID
+0x08    4       Module Type
+0x0C    4       Flags1
+0x10    4       Flags2
+0x14    4       Reserved
+0x18    4       Compressed Size
+0x1C    4       Uncompressed Size
+0x20    4       Load Address
+0x24    4       Entry Point
+0x28    8       Hash
+0x30    16      Module Name
+0x40    8       Padding
+
+KNOWN MODULES
+-------------
+BRINGUP         - Bring-up module (type 0x05)
+PRELOADER       - Kernel Preloader (type 0x07)
+BUCLS_OVL       - BUP CLS Overlay (type 0x15)
+KernelPriv      - Privileged Kernel (type 0x2B)
+KernelNonPriv   - Non-privileged Kernel (type 0x21)
+
+LIMITATIONS
+-----------
+- Only Intel ME 1.x/4.x/5.x format supported
+- Some modules may be encrypted
+- LZMA decompression may fail for newer ME versions
+
+AUTHOR
+------
+Intel ME firmware structure reverse engineering
