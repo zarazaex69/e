@@ -24,3 +24,29 @@ Next Steps:
 1.  **Extract the first LZMA block.** Start with the one at 0x00076428.
 2.  **Decompress it.** Use a standard LZMA tool or write a script.
 3.  **Analyze the decompressed binary.** This will be a raw, clean ARC module.
+=========================
+LZMA Decompression Issues
+=========================
+
+Standard `unlzma` utility failed with "File format not recognized".
+
+Hypothesis:
+-----------
+Intel uses a custom LZMA implementation. The stream is likely raw, without the standard 13-byte header.
+All metadata (sizes, properties) is probably stored externally in the $MAN module manifest.
+
+Next step: Reverse engineer the $MAN manifest structure to find the required decompression parameters.
+======================================
+SUCCESS: Custom Unpacker 'm1u' Built
+======================================
+
+Developed a custom C tool 'm1u' to parse the firmware and handle the proprietary Intel LZMA format.
+The tool successfully bypasses the invalid LZMA header by reconstructing it with the correct uncompressed size from the $MOD entry.
+
+First module 'KernelPriv' has been successfully decompressed.
+
+- Compressed Size:   81,512 bytes
+- Decompressed Size: 240,900 bytes
+- Output File:       reverse/me1/unpacked_modules/KernelPriv.bin
+
+The path is clear for batch decompression of all remaining modules.
