@@ -1,0 +1,26 @@
+==================================
+LZMA Compressed Modules Discovery
+==================================
+
+Confirmed that CODE partition contains multiple LZMA-compressed blocks.
+This indicates a modular firmware structure.
+
+LZMA Signatures ('5d 00 00') found at:
+--------------------------------------
+- 0x00076428 (hit.bytes.0)
+- 0x0008a2e0 (hit.bytes.1)
+- 0x000a1818 (hit.bytes.2)
+- 0x000ae4d8 (hit.bytes.3)
+- 0x000c9800 (hit.bytes.4)
+- 0x000cc22c (hit.bytes.5)
+
+Hypothesis:
+-----------
+The initial entry point at 0x720A0 belongs to a bootloader or a kernel module.
+Its primary task is to find and decompress these subsequent modules into RAM.
+
+Next Steps:
+-----------
+1.  **Extract the first LZMA block.** Start with the one at 0x00076428.
+2.  **Decompress it.** Use a standard LZMA tool or write a script.
+3.  **Analyze the decompressed binary.** This will be a raw, clean ARC module.
