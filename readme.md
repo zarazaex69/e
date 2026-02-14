@@ -22,7 +22,7 @@ UPD: я начал заниматся 11, ( я просто перешел в п
 
 UPD: я все же продолжил работу с этим, так вот, [see](reverse/me1/doc/allowunsignedassertstolen.txt)
 
-UPD: утилита m1u успешно извлекла все 18 модулей из прошивки ME1 (100% success rate)
+UPD: утилита m1u успешно извлекла все 18 модулей из прошивки ME1 (100% success rate) [see](reverse/me1/doc/note/ALL_MODULES.txt). 
 
  
 <div align="center">
