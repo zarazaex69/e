@@ -1,0 +1,73 @@
+# {module_name} Module
+
+## Overview
+
+**Module Type:** {module_type}  
+**File Size:** {size} bytes  
+**Compressed:** {compressed}  
+**Load Address:** 0x{load_address:08X}  
+**Entry Point:** 0x{entry_point:08X}
+
+## Purpose
+
+{purpose}
+
+## Data Structures
+
+{data_structures}
+
+## Exported Functions
+
+| Address | Name | Signature | Description |
+|---------|------|-----------|-------------|
+{function_table}
+
+## Entry Point
+
+**Address:** 0x{entry_point:08X}
+
+{entry_point_description}
+
+### Entry Point Disassembly
+
+```asm
+{entry_point_disassembly}
+```
+
+## Dependencies
+
+### Required Modules
+
+{dependencies}
+
+### Imported Functions
+
+| Function | Source Module | Address |
+|----------|---------------|---------|
+{imports_table}
+
+## Strings and Constants
+
+{strings_section}
+
+## Cross-References
+
+### Calls To This Module
+
+{xrefs_to}
+
+### Calls From This Module
+
+{xrefs_from}
+
+## Security Analysis
+
+{security_analysis}
+
+## Notes
+
+{notes}
+
+## References
+
+{references}
