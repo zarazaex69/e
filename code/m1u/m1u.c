@@ -89,6 +89,43 @@ ME_Module_Entry* find_module(uint8_t *firmware, size_t firmware_size, const char
     return NULL;
 }
 
+int find_all_modules(uint8_t *firmware, size_t firmware_size, ME_Module_Entry ***modules_out, int *count_out) {
+    const uint8_t sig[] = {'$', 'M', 'O', 'D'};
+    int capacity = 32;
+    int count = 0;
+    
+    ME_Module_Entry **modules = malloc(capacity * sizeof(ME_Module_Entry*));
+    if (!modules) {
+        return -1;
+    }
+    
+    for (size_t offset = 0; offset < firmware_size - 0x50; offset++) {
+        if (memcmp(&firmware[offset], sig, 4) == 0) {
+            ME_Module_Entry *entry = (ME_Module_Entry*)(firmware + offset);
+            
+            if (entry->module_type > 0x100 || entry->compressed_size > 0x1000000) {
+                continue;
+            }
+            
+            if (count >= capacity) {
+                capacity *= 2;
+                ME_Module_Entry **new_modules = realloc(modules, capacity * sizeof(ME_Module_Entry*));
+                if (!new_modules) {
+                    free(modules);
+                    return -1;
+                }
+                modules = new_modules;
+            }
+            
+            modules[count++] = entry;
+        }
+    }
+    
+    *modules_out = modules;
+    *count_out = count;
+    return 0;
+}
+
 int decompress_module(uint8_t *compressed_data, uint32_t compressed_size,
                      uint32_t uncompressed_size, uint8_t **output) {
     
@@ -145,15 +182,19 @@ int decompress_module(uint8_t *compressed_data, uint32_t compressed_size,
     return 0;
 }
 
+int extract_single_module(uint8_t *firmware, size_t firmware_size, ME_Module_Entry *module, const char *module_name);
+
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <firmware.bin> <module_name>\n", argv[0]);
-        fprintf(stderr, "Example: %s me1x200.bin KernelPriv\n", argv[0]);
+    if (argc < 2 || argc > 3) {
+        fprintf(stderr, "Usage: %s <firmware.bin> [module_name]\n", argv[0]);
+        fprintf(stderr, "Examples:\n");
+        fprintf(stderr, "  %s me1x200.bin              - Extract ALL modules\n", argv[0]);
+        fprintf(stderr, "  %s me1x200.bin KernelPriv   - Extract specific module\n", argv[0]);
         return 1;
     }
     
     const char *firmware_path = argv[1];
-    const char *module_name = argv[2];
+    const char *module_name = (argc == 3) ? argv[2] : NULL;
     
     FILE *f = fopen(firmware_path, "rb");
     if (!f) {
@@ -201,6 +242,49 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
+    system("mkdir -p out");
+    
+    if (module_name == NULL) {
+        ME_Module_Entry **modules;
+        int module_count;
+        
+        if (find_all_modules(firmware, firmware_size, &modules, &module_count) != 0) {
+            fprintf(stderr, "Error: Failed to find modules\n");
+            free(firmware);
+            return 1;
+        }
+        
+        printf("Found %d modules. Extracting all...\n\n", module_count);
+        
+        int success_count = 0;
+        for (int i = 0; i < module_count; i++) {
+            char name[17];
+            memcpy(name, modules[i]->module_name, 16);
+            name[16] = '\0';
+            
+            for (int j = 15; j >= 0; j--) {
+                if (name[j] == ' ' || name[j] == '\0') {
+                    name[j] = '\0';
+                } else {
+                    break;
+                }
+            }
+            
+            printf("[%d/%d] Extracting '%s'...\n", i + 1, module_count, name);
+            
+            if (extract_single_module(firmware, firmware_size, modules[i], name) == 0) {
+                success_count++;
+            }
+        }
+        
+        free(modules);
+        free(firmware);
+        
+        printf("\n========================================\n");
+        printf("Extraction complete: %d/%d modules extracted successfully\n", success_count, module_count);
+        return 0;
+    }
+    
     ME_Module_Entry *module = find_module(firmware, firmware_size, module_name);
     if (!module) {
         fprintf(stderr, "Error: Module '%s' not found\n", module_name);
@@ -208,6 +292,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
+    int result = extract_single_module(firmware, firmware_size, module, module_name);
+    free(firmware);
+    return result;
+}
+
+int extract_single_module(uint8_t *firmware, size_t firmware_size, ME_Module_Entry *module, const char *module_name) {
     uint32_t entry_offset = (uint8_t*)module - firmware;
     uint32_t data_offset = entry_offset + 0x50;
     uint8_t *data = firmware + data_offset;
@@ -270,10 +360,8 @@ int main(int argc, char *argv[]) {
     
     fclose(out);
     free(output_data);
-    free(firmware);
     
-    printf("Module '%s' extracted successfully to '%s'\n", module_name, output_filename);
-    printf("Size: %zu bytes (%s)\n", output_size, compressed ? "decompressed" : "uncompressed");
+    printf("  -> '%s' (%zu bytes, %s)\n", output_filename, output_size, compressed ? "decompressed" : "uncompressed");
     
     return 0;
 }
