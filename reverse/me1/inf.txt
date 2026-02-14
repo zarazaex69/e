@@ -20,11 +20,7 @@ implemented proper Secure Boot / Boot Guard mechanisms in later versions, or int
 --------------------------------------------------------------------------------
 ok honestly? this was boring as fuck.
 
-i came here looking for funny Easter eggs, hidden backdoors, maybe some
-developer jokes buried in the firmware. wanted to reverse some cool programs,
-find KEKS, do some fun hacking.
-
-instead i got... an RTOS. 
+i got... an RTOS. 
 
 just a boring real-time operating system with semaphores and thread pools.
 no secret messages. no backdoors (ironically, the WHOLE THING is a backdoor).
@@ -33,10 +29,6 @@ one "DEADBEEF"and.... nothing
 the only "security" here is a joke 64-bit hash that my grandmother could
 brute-force on her toaster. Intel really shipped this to millions of laptops.
 wild.
-
-anyway, ME v1 is thoroughly pwned now. moving on to ME v11 next - hopefully
-there's something actually interesting there. maybe some real crypto to break.
-
 gnite nerds ✌️
 
 - zarazaex
