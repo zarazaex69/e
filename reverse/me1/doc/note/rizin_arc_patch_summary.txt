@@ -1,42 +1,56 @@
 RIZIN ARC PATCH - QUICK REFERENCE
 ================================================================================
 
-STATUS: Applied and tested
+STATUS: Applied and tested (COMPLETE - all 271 unknown instructions resolved)
 DATE: 2025-02-15
 LOCATION: code/rizin (git submodule)
 
 CHANGES:
-1. Added enum constants: op_ASL_S_RR=8, op_ASR_S_RR=10, op_LSR_S_RR=11
-2. Added case handlers with decodingClass=16 for three-operand format
-3. Created test cases in test/db/asm/arc_shift_opcodes
+1. Added enum constants: op_ASL_S_RR=8, op_ASR_S_RR=10, op_LSR_S_RR=11, op_MAJOR_7=7
+2. Added case handlers for 16-bit shift instructions (decodingClass=16)
+3. Added case handler for op_MAJOR_7 extended format shift instructions
+4. Created test cases in test/db/asm/arc_shift_opcodes
 
 IMPACT:
-- 271 unknown instructions across 18 ME1 modules now decode correctly
-- ASL_S: 37 occurrences resolved
-- ASR_S: 147 occurrences resolved
-- LSR_S: 0 occurrences (not used in register-register form)
+- ALL 271 unknown instructions across 18 ME1 modules now decode correctly
+- 16-bit instructions (184 total):
+  - ASL_S: 37 occurrences resolved
+  - ASR_S: 147 occurrences resolved
+  - LSR_S: 0 occurrences (not used in register-register form)
+- 32-bit extended format instructions (87 total):
+  - Major opcode 7 shift instructions: ALL resolved
 
 BUILD:
 cd code/rizin
-meson setup build
 ninja -C build
 
 TEST RESULTS:
 - Build: SUCCESS
 - Core tests: 130/146 PASS
 - Failed tests: 16 (unrelated to patch - project migration issues)
-- Manual verification: PASS (tested on PRELOADER.bin)
+- Manual verification: PASS (tested on PRELOADER.bin and KernelPriv.bin)
+- Unknown instruction count: 0 (was 271)
 
 VERIFICATION EXAMPLE:
 code/rizin/build/binrz/rizin/rizin -a arc -b 16 -q -c 'pd 10 @ 0xb8' \
   reverse/me1/modules/PRELOADER.bin
 
-Before: 0x000000ca  ???   r1, r0, 0
-After:  0x000000ca  asl_s r1, r0, 0
+Before patch:
+  0x000000ca  ???   r1, r0, 0
+  0x000000ce  ???   r0, r0, r20
+
+After patch:
+  0x000000ca  asl_s r1, r0, 0
+  0x000000ce  asl   r0, r0, r20
 
 DOCUMENTATION:
 - Full patch details: reverse/me1/doc/note/rizin_arc_patch.txt
 - Unknown instructions report: reverse/me1/doc/note/rizin_arc_unknown_instructions.txt
+
+TECHNICAL DETAILS:
+- 16-bit format: opcodes 8, 10, 11 (ASL_S/ASR_S/LSR_S register-register)
+- 32-bit format: major opcode 7 with subopcode 0-3 (asl/asr/lsr/ror extended)
+- Extended format allows access to registers r32-r63 (gp, fp, sp, etc.)
 
 NEXT STEPS:
 - Patch is ready for use in ME1 analysis
