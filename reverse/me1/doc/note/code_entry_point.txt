@@ -1,5 +1,5 @@
 CODE Partition & Entry Point Discovery
-======================================
+==
 
 The CODE partition starts at 0x72000.
 This address does not contain raw ARC instructions, but a module header.

@@ -1,5 +1,5 @@
 KernelPriv.bin - Initial Analysis
-======================================
+==
 
 File: KernelPriv.bin
 Size: 240,900 bytes

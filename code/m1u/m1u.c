@@ -280,7 +280,6 @@ int main(int argc, char *argv[]) {
         free(modules);
         free(firmware);
         
-        printf("\n========================================\n");
         printf("Extraction complete: %d/%d modules extracted successfully\n", success_count, module_count);
         return 0;
     }

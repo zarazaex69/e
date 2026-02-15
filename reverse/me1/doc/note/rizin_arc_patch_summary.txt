@@ -1,5 +1,5 @@
 RIZIN ARC PATCH - QUICK REFERENCE
-================================================================================
+==
 
 STATUS: Applied and tested (COMPLETE - all 271 unknown instructions resolved)
 DATE: 2025-02-15
@@ -57,4 +57,4 @@ NEXT STEPS:
 - Consider submitting to Rizin upstream
 - Update methodology/rizin-setup.md with patch information
 
-================================================================================
+==

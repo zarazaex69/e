@@ -1,5 +1,5 @@
 m1u - Intel ME Firmware Module Extractor
-========================================
+=
 
 Utility for extracting and decompressing modules from Intel Management Engine firmware.
 

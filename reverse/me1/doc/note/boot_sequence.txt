@@ -1,10 +1,10 @@
 Intel ME 1.x - Boot Sequence & Module Loading Chronology
-=========================================================
+
 
 Purpose: Establish module loading sequence for structured reverse engineering approach.
 
 BOOT ARCHITECTURE
-=================
+==
 
 Firmware Structure:
 - Flash Partition Table ($FPT) at 0x10
@@ -13,7 +13,7 @@ Firmware Structure:
 - 18 modules total: 7 LZMA compressed, 11 uncompressed
 
 BOOT PHASES
-===========
+==
 
 Phase 0: Hardware Reset & ROM
 ------------------------------
@@ -213,7 +213,7 @@ Evidence:
 - Both LZMA compressed - loaded on demand
 
 MODULE LOADING MECHANISM
-========================
+
 
 Overlay System:
 - Modules with "_OVL" suffix - overlay modules
@@ -227,7 +227,7 @@ Compression Strategy:
 - Large optional (UPEK) - compressed, loaded rarely
 
 MODULE DEPENDENCIES
-===================
+=
 
 Critical path (mandatory sequence):
 1. ROM → Entry Point (0x720A0)
@@ -248,7 +248,7 @@ Deferred loading (on-demand):
 - UPEK (only if fingerprint reader present)
 
 REVERSE ENGINEERING PLAN
-========================
+
 
 Priority 1 - Critical boot path:
 1. Entry Point (0x720A0) - understand loading mechanism
@@ -271,7 +271,7 @@ Priority 4 - Overlay system:
 12. Links between base modules and overlays
 
 ANALYSIS TOOLS
-==============
+==
 
 Available tools:
 - m1u - module decompressor (working)
@@ -284,7 +284,7 @@ Need to develop:
 - Call graph reconstructor for KernelPriv
 
 NEXT STEPS
-==========
+=
 
 1. Create detailed PRELOADER analysis:
    - Find LZMA loading code
@@ -307,7 +307,7 @@ NEXT STEPS
    - Inter-module communication mechanism
 
 CONCLUSIONS
-===========
+==
 
 ME1 boot sequence:
 ROM → Entry(0x720A0) → PRELOADER → Kernel(Priv+NonPriv) → BRINGUP → 

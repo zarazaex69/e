@@ -1,5 +1,5 @@
 AllowUnsignedAssertStolen - The "Backdoor" Flag
-================================================
+
 
 So I was digging through the TDT (Trusted Execution Technology) module and found
 this absolutely WILD variable name. I mean, come on Intel - "AllowUnsignedAssertStolen"?

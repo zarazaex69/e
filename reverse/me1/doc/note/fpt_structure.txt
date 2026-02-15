@@ -1,5 +1,5 @@
 FPT Structure Analysis
-=========================
+=
 
 The firmware uses a standard Intel Flash Partition Table ($FPT) starting at 0x10.
 The table contains entries for different firmware regions.
