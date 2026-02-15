@@ -12,3 +12,5 @@ no -b
 0x0000011c    1 8            fcn.0000011c
 0x000001ac    2 16           fcn.000001ac
 ....
+
+and -b FUCKUP all asm, make "???" and rizin crash
