@@ -4,7 +4,7 @@ Key Findings from String Dump
 Analysis of 11,000+ strings provided crucial context about the internal OS.
 
 Key Subsystems Identified:
---------------------------
+
 1.  **Kernel / Memory Management:**
     - "KernelPriv" & "KernelNonPriv": Indicates a privileged kernel space and a non-privileged user space. A classic OS architecture.
 

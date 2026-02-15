@@ -17,7 +17,7 @@ implemented proper Secure Boot / Boot Guard mechanisms in later versions, or int
 
                                concluding remarks 
 
---------------------------------------------------------------------------------
+
 ok honestly? this was boring as fuck.
 
 i got... an RTOS. 

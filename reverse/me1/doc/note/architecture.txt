@@ -5,7 +5,7 @@ Binary: me1x200.bin
 Size: 1.5M (0x180000)
 
 Initial Findings:
------------------
+-
 
 Architecture: Most likely ARC (Argonaut RISC Core)
 
@@ -23,7 +23,7 @@ Evidence:
   * CODE (main code partition at 0x72000)
 
 Next Steps:
------------
+-
 1. Confirm ARC architecture by analyzing CODE partition
 2. Extract and analyze individual partitions
 3. Find entry point and interrupt vectors

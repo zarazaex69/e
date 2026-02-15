@@ -20,7 +20,7 @@ The system works like this:
 
 Normal Flow:
 ┌──────────────┐     ┌─────────────────┐     ┌────────────┐
-│   Permit     │ --> │ Verify Signature │ --> │   Assert   │ --> OK!
+│   Permit     │ > │ Verify Signature │ > │   Assert   │ > OK!
 │  (signed)    │     │   (RSA/ECDSA)    │     │  (trust)   │
 └──────────────┘     └─────────────────┘     └────────────┘
 
@@ -29,14 +29,14 @@ You know, like it was... stolen?
 
 Stolen Permit:
 ┌──────────────┐     ┌─────────────────┐     ┌────────────┐
-│   Permit     │ --> │ Verify Signature │ --> │   BLOCKED  │ --> NOPE
+│   Permit     │ > │ Verify Signature │ > │   BLOCKED  │ > NOPE
 │  (stolen)    │     │    (mismatch)    │     │            │
 └──────────────┘     └─────────────────┘     └────────────┘
 
 And HERE's where AllowUnsignedAssertStolen comes in:
 
 ┌──────────────┐     ┌─────────────────┐     ┌────────────┐
-│   Permit     │ --> │   BYPASS SIGN   │ --> │   Assert   │ --> OK?!
+│   Permit     │ > │   BYPASS SIGN   │ > │   Assert   │ > OK?!
 │  (stolen)    │     │ (flag is set)   │     │  (trust)   │
 └──────────────┘     └─────────────────┘     └────────────┘
 

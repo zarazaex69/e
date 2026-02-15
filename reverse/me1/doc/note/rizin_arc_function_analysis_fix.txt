@@ -2,12 +2,12 @@ Rizin ARC Function Analysis Fix
 ==
 
 Problem
--------
+-
 Rizin's automatic analysis (aa/aaa) fails to properly identify functions in ARC binaries.
 The entire binary gets identified as a single large function, making analysis impossible.
 
 Root Cause
-----------
+
 ARC architecture uses non-standard function prologues that Rizin's heuristics don't recognize.
 Specifically, ME1 modules use a pattern of:
   sub sp, sp, 4
@@ -18,7 +18,7 @@ Specifically, ME1 modules use a pattern of:
 This pattern (hex: 047e8e53) appears at the start of many functions but isn't detected by default.
 
 Solution
---------
+
 Manual function definition using Rizin's afu (analyze function until) command.
 
 Step-by-step process:
@@ -44,7 +44,7 @@ Step-by-step process:
    Lists all defined functions.
 
 Example Session
----------------
+-
 $ rizin -a arc -b 32 ALIASCHECK_OVL.bin
 
 [0x00000000]> /x 047e8e53
@@ -94,7 +94,7 @@ $ rizin -a arc -b 32 ALIASCHECK_OVL.bin
 └      ┌──< 0x000000c8      b.d   0x000000d4
 
 Alternative: Automated Approach
---------------------------------
+
 Use Rizin's iterator to define all functions at once:
 
 [0x00000000]> af @@/x 047e8e53
@@ -103,7 +103,7 @@ This runs 'af' (analyze function) at every location matching the hex pattern.
 However, this only creates function at first match. Manual afu approach is more reliable.
 
 Failed Attempts
----------------
+-
 1. e analysis.prelude=047e8e53
    - Tried to set function prelude pattern
    - Syntax error: spaces not allowed in config values
@@ -117,7 +117,7 @@ Failed Attempts
    - Useless for detailed analysis
 
 Automation Script
------------------
+-
 For automation, extract addresses from /x search and generate afu commands:
 
 #!/bin/bash
@@ -127,7 +127,7 @@ rizin -q -a arc -b 32 -c '/x 047e8e53' ALIASCHECK_OVL.bin | \
   rizin -a arc -b 32 -i - ALIASCHECK_OVL.bin
 
 Impact
-------
+
 This fix enables proper function-level analysis of ME1 ARC modules.
 Without it, reverse engineering is nearly impossible due to lack of function boundaries.
 
@@ -140,7 +140,7 @@ Applies to all ME1 modules using this prologue pattern:
 - Most overlay modules
 
 Notes
------
+-
 - Pattern 047e8e53 = "sub sp, sp, 4" in ARC bytecode
 - Not all functions use this pattern (some use different prologues)
 - Manual verification still required for complex functions

@@ -5,7 +5,7 @@ The firmware uses a standard Intel Flash Partition Table ($FPT) starting at 0x10
 The table contains entries for different firmware regions.
 
 Known Partitions from Hex Dump:
--------------------------------
+-
 - 0x30: FOVD (Field Override Data)
 - 0x50: EFFS (Embedded Flash File System?)
 - 0x70: NVUP

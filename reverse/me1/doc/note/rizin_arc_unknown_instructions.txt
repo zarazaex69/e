@@ -60,9 +60,9 @@ Format: INSTRUCTION[.f] dest, src1, src2
 
 Modifier .f: Set processor flags (Zero, Negative, Carry, Overflow)
 
---------------------------------------------------------------------------------
+
 OPCODE 8 (0x08) - ASL_S - Arithmetic Shift Left
---------------------------------------------------------------------------------
+
 
 Description: Shifts source register left by amount specified in second source
 register. Fills vacated bits with zeros.
@@ -70,16 +70,16 @@ register. Fills vacated bits with zeros.
 Operation:    dest = src1 << src2
 
 Byte Pattern  Count  Decoded Instruction          Operation
---------------------------------------------------------------------------------
+
 0x2040        24     ASL_S r0, r0, r2              r0 = r0 << r2
 0x6140        11     ASL_S r1, r0, r6              r1 = r0 << r6
 0x6040        2      ASL_S r0, r0, r6              r0 = r0 << r6
 
 Total occurrences: 37
 
---------------------------------------------------------------------------------
+
 OPCODE 10 (0x0A) - ASR_S - Arithmetic Shift Right
---------------------------------------------------------------------------------
+
 
 Description: Shifts source register right by amount specified in second source
 register. Preserves sign bit (sign-extends).
@@ -87,7 +87,7 @@ register. Preserves sign bit (sign-extends).
 Operation:    dest = src1 >> src2 (arithmetic, sign-extended)
 
 Byte Pattern  Count  Decoded Instruction          Operation
---------------------------------------------------------------------------------
+
 0x8e53        87     ASR_S r14, r7, r0             r14 = r7 >> r0
 0x2050        20     ASR_S r0, r0, r2              r0 = r0 >> r2
 0x6050        20     ASR_S r0, r0, r6              r0 = r0 >> r6
@@ -99,9 +99,9 @@ Byte Pattern  Count  Decoded Instruction          Operation
 
 Total occurrences: 147
 
---------------------------------------------------------------------------------
+
 OPCODE 11 (0x0B) - LSR_S - Logical Shift Right
---------------------------------------------------------------------------------
+
 
 Description: Shifts source register right by amount specified in second source
 register. Fills vacated bits with zeros (zero-extends).
@@ -133,9 +133,9 @@ r59 = blink (Branch Link Register)
 r60 = lp_count (Loop Count)
 r63 = pcl (Program Counter Literal)
 
---------------------------------------------------------------------------------
+
 Byte Pattern    Count  Type                         Description
---------------------------------------------------------------------------------
+
 0x0f38037a      12     Extended SHIFT               Shift with r56(gp), r40(fp)
 0x0f3803fe      10     Extended SHIFT.f             Shift with flags, ext. regs
 0x202a0020      10     Extended ASL                 Shift with extended register
@@ -174,7 +174,7 @@ PER-MODULE STATISTICS
 ==
 
 Module               File Size    Unknown Count    Notes
---------------------------------------------------------------------------------
+
 ALIASCHECK_OVL.bin   4,788        15               Alias checking overlay
 BRINGUP.bin          8,148        15               System bringup module
 BUCLS_OVL.bin        2,664        15               Backup/class overlay

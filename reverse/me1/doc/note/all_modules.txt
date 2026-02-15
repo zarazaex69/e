@@ -6,7 +6,7 @@ Extraction Tool: m1u (custom LZMA decompressor)
 Total Modules: 18/18 (100% success)
 
 Module List
------------
+-
 
 1.  BRINGUP              8,148 bytes    [Uncompressed]
     Type: 0x05 - Bring-up module
@@ -71,7 +71,7 @@ Module List
     Largest module overall
 
 Statistics
-----------
+
 Total Size (decompressed):  1,278,139 bytes (~1.22 MB)
 Compressed Modules:         7 (38.9%)
 Uncompressed Modules:       11 (61.1%)
@@ -83,7 +83,7 @@ Compression Ratios (notable):
 - UPEK:          Largest payload (fingerprint algorithms)
 
 Module Categories
------------------
+-
 Boot/Init:      BRINGUP, PRELOADER, BUCLS_OVL, BUPMSEQ_OVL
 Kernel:         KernelPriv, KernelNonPriv
 Power Mgmt:     PMHWSEQ, MOFFM0_OVL
@@ -93,7 +93,7 @@ Biometrics:     UPEK
 Services:       CLS, ALIASCHECK_OVL, SUPPORT_OVL
 
 Next Steps
-----------
+
 1. Disassemble ARC binaries (KernelPriv, KernelNonPriv priority)
 2. Analyze TPM implementation for crypto routines
 3. Reverse UPEK module for fingerprint handling
@@ -101,7 +101,7 @@ Next Steps
 5. Identify entry points and API surfaces
 
 Notes
------
+-
 All modules successfully extracted and decompressed.
 Intel ME 1.x uses custom LZMA format without standard 8-byte size header.
 No encryption detected on any modules (consistent with weak security model).

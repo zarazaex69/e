@@ -4,7 +4,7 @@ m1u - Intel ME Firmware Module Extractor
 Utility for extracting and decompressing modules from Intel Management Engine firmware.
 
 FEATURES
---------
+
 - FPT (Flash Partition Table) parsing
 - CODE partition and $MAN manifest detection
 - Module extraction by name
@@ -12,7 +12,7 @@ FEATURES
 - Uncompressed module support
 
 USAGE
------
+-
 ./m1u <firmware.bin> [module_name]
 
 Examples:
@@ -21,12 +21,12 @@ Examples:
   ./m1u me1x200.bin BRINGUP        - Extract specific module
 
 OUTPUT
-------
+
 Extracted modules are saved to out/ directory
 Format: out/<module_name>.bin
 
 BUILD
------
+-
 make
 
 Requirements:
@@ -34,7 +34,7 @@ Requirements:
 - liblzma (xz-utils)
 
 TECHNICAL DETAILS
------------------
+-
 Intel ME uses a custom LZMA format:
 - 1 byte: properties (lc, lp, pb)
 - 4 bytes: dictionary size
@@ -44,9 +44,9 @@ The program automatically converts to standard LZMA Alone format
 by adding the correct uncompressed_size from $MOD entry.
 
 $MOD ENTRY STRUCTURE
---------------------
+
 Offset  Size    Field
-------  ----    -----
+      -
 0x00    4       Signature ($MOD)
 0x04    4       Module ID
 0x08    4       Module Type
@@ -62,7 +62,7 @@ Offset  Size    Field
 0x40    8       Padding
 
 EXTRACTED MODULES (18 total)
-----------------------------
+
 Boot/Init Modules:
   BRINGUP         8.0K    - Bring-up module (type 0x05)
   PRELOADER       4.2K    - Kernel Preloader (type 0x07)
@@ -101,17 +101,17 @@ Statistics:
   Uncompressed:   11 modules (61.1%)
 
 BATCH EXTRACTION
-----------------
+
 Running m1u without module name extracts ALL 18 modules automatically.
 Progress is displayed for each module during extraction.
 All modules are saved to out/ directory.
 
 LIMITATIONS
------------
+-
 - Only Intel ME 1.x/4.x/5.x format supported
 - Some modules may be encrypted
 - LZMA decompression may fail for newer ME versions
 
 AUTHOR
-------
+
 Intel ME firmware structure reverse engineering

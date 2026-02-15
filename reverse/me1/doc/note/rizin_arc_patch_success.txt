@@ -216,7 +216,7 @@ $ rizin -a arc -b 16 reverse/me1/modules/PRELOADER.bin
 ...
 
 [0x00000000]> pdf @ 0x000000b8
-            ;-- fcn.000000b8:
+            ; fcn.000000b8:
 ┌ 20: fcn.000000b8 ();
 │           0x000000b8      047e           sub sp, sp, 4
 │           0x000000ba      8e53           asr_s r14, r7, r0

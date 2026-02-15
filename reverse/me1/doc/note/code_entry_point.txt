@@ -5,12 +5,12 @@ The CODE partition starts at 0x72000.
 This address does not contain raw ARC instructions, but a module header.
 
 Module Header Analysis (at 0x72000):
-------------------------------------
+
 - Contains metadata, including a probable build date (looks like 2012.08.17) and a signature '$MAN'.
 - A field at offset +0x4 (value 0xA1) points to the entry point *relative* to the start of the header.
 
 Entry Point Confirmed:
-----------------------
+
 - Module Base: 0x72000
 - Entry Offset: 0xA0 (aligned)
 - Absolute Entry Point: 0x720A0

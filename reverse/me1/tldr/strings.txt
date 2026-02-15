@@ -1,5 +1,5 @@
   nth      paddr      vaddr len size section type    string                                                                                                                                                                                                                                         
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
     0 0x00000010 0x00000010   5    6         ascii   $FPT\b
     1 0x00000030 0x00000030   8    9         ascii   FOVDKRID
     2 0x00000050 0x00000050   8    9         ascii   EFFSOSID
@@ -5327,7 +5327,7 @@
  5324 0x0009c71e 0x0009c71e   4    4         ascii   :\b\t9
  5325 0x0009c729 0x0009c729   4    4         utf8    ETkE
  5326 0x0009c734 0x0009c734   4    5         ascii   Lb\v!
- 5327 0x0009c78a 0x0009c78a   5    5         ascii   ~-->5
+ 5327 0x0009c78a 0x0009c78a   5    5         ascii   ~>5
  5328 0x0009c7a4 0x0009c7a4   4    4         ascii   u(i4
  5329 0x0009c82b 0x0009c82b   4    4         ascii   :\r\tt
  5330 0x0009c839 0x0009c839   4    4         ascii   V0"C
@@ -6833,7 +6833,7 @@
  6830 0x000b8be5 0x000b8be5   4    5         ascii   ,JWQ
  6831 0x000b8bf3 0x000b8bf3   4    4         ascii   *\nXl
  6832 0x000b8c3e 0x000b8c3e   4    4         ascii   ;$&E
- 6833 0x000b8c55 0x000b8c55   4    4         ascii   --Fk
+ 6833 0x000b8c55 0x000b8c55   4    4         ascii   Fk
  6834 0x000b8c91 0x000b8c91   4    4         ascii   ENEr
  6835 0x000b8ca6 0x000b8ca6   4    4         ascii   <L\bX
  6836 0x000b8cb9 0x000b8cb9   8    8         ascii   +`:mxyqr
@@ -9390,7 +9390,7 @@
  9387 0x000f2435 0x000f2435   4    4         ascii   \nFu!
  9388 0x000f2439 0x000f2439  10   10         ibm037  o?.->WAF;I
  9389 0x000f24c0 0x000f24c0   6    7         ibm037  OdmÈYA
- 9390 0x000f2536 0x000f2536  16   16         ibm037  --ELIZòü³"N9\ta|Q
+ 9390 0x000f2536 0x000f2536  16   16         ibm037  ELIZòü³"N9\ta|Q
  9391 0x000f25ac 0x000f25ac   4    5         utf8    aÖ,3 blocks=Basic Latin,Latin-1 Supplement
  9392 0x000f25b4 0x000f25b4   5    6         ibm037  JGF8Â
  9393 0x000f25ba 0x000f25ba   4    4         ascii   '>S3
@@ -9930,7 +9930,7 @@
  9927 0x000f9752 0x000f9752   5    5         ascii   "Y)"0
  9928 0x000f9778 0x000f9778   7    7         ascii   fOC]$z~
  9929 0x000f9783 0x000f9783  10   10         ibm037  é6Ic"ápigx
- 9930 0x000f9795 0x000f9795   9    9         ascii   --b0.w6t#
+ 9930 0x000f9795 0x000f9795   9    9         ascii   b0.w6t#
  9931 0x000f987e 0x000f987e   4    4         ascii   :~<p
  9932 0x000f98d1 0x000f98d1   4    4         ascii   $[TG
  9933 0x000f98d5 0x000f98d5   9   10         ibm037  cp~yj+0d¶
@@ -11000,7 +11000,7 @@
 10997 0x00107ddd 0x00107ddd   6    6         utf8    BTd.5b
 10998 0x00107e0a 0x00107e0a   6    6         ascii    7ve[{
 10999 0x00107e3f 0x00107e3f   4    4         ascii   (X4:
-11000 0x00107e45 0x00107e45   4    4         ascii   --5#
+11000 0x00107e45 0x00107e45   4    4         ascii   5#
 11001 0x00107e54 0x00107e54   4    4         ascii   @)0T
 11002 0x00107e62 0x00107e62   4    5         ascii   3~\aI
 11003 0x00107ea1 0x00107ea1   4    4         ascii   iU\r"

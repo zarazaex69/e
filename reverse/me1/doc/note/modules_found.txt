@@ -5,7 +5,7 @@ Confirmed that CODE partition contains multiple LZMA-compressed blocks.
 This indicates a modular firmware structure.
 
 LZMA Signatures ('5d 00 00') found at:
---------------------------------------
+
 - 0x00076428 (hit.bytes.0)
 - 0x0008a2e0 (hit.bytes.1)
 - 0x000a1818 (hit.bytes.2)
@@ -14,12 +14,12 @@ LZMA Signatures ('5d 00 00') found at:
 - 0x000cc22c (hit.bytes.5)
 
 Hypothesis:
------------
+-
 The initial entry point at 0x720A0 belongs to a bootloader or a kernel module.
 Its primary task is to find and decompress these subsequent modules into RAM.
 
 Next Steps:
------------
+-
 1.  **Extract the first LZMA block.** Start with the one at 0x00076428.
 2.  **Decompress it.** Use a standard LZMA tool or write a script.
 3.  **Analyze the decompressed binary.** This will be a raw, clean ARC module.
@@ -30,7 +30,7 @@ LZMA Decompression Issues
 Standard `unlzma` utility failed with "File format not recognized".
 
 Hypothesis:
------------
+-
 Intel uses a custom LZMA implementation. The stream is likely raw, without the standard 13-byte header.
 All metadata (sizes, properties) is probably stored externally in the $MAN module manifest.
 
@@ -57,14 +57,14 @@ COMPLETE: All 18 Modules Successfully Extracted
 Final extraction completed with 100% success rate.
 
 Module Breakdown:
------------------
+-
 Total Modules:        18
 Compressed (LZMA):    7 modules (38.9%)
 Uncompressed:         11 modules (61.1%)
 Total Size:           ~1.22 MB (decompressed)
 
 Extracted Modules:
-------------------
+
 Boot/Init:      BRINGUP, PRELOADER, BUCLS_OVL, BUPMSEQ_OVL
 Kernel:         KernelPriv (240KB), KernelNonPriv (250KB)
 Power Mgmt:     PMHWSEQ, MOFFM0_OVL
@@ -74,7 +74,7 @@ Biometrics:     UPEK (373KB - largest module)
 Services:       CLS, ALIASCHECK_OVL, SUPPORT_OVL
 
 Key Findings:
--------------
+-
 - UPEK module (373KB) is the largest - contains fingerprint reader algorithms
 - TPM module (265KB) is second largest - full TPM 1.2 implementation
 - Smallest module is PKTPMINIT_OVL (2.1KB)

@@ -16,7 +16,7 @@ BOOT PHASES
 ==
 
 Phase 0: Hardware Reset & ROM
-------------------------------
+
 Status: Not accessible for analysis (on-chip ROM)
 
 Actions:
@@ -25,7 +25,7 @@ Actions:
 - ROM transfers control to CODE partition entry point (0x720A0)
 
 Phase 1: Initial Bootloader (Entry Point)
-------------------------------------------
+
 Address: 0x720A0
 Module: Embedded in CODE partition (not a separate module)
 
@@ -40,7 +40,7 @@ Evidence:
 - "Complex, indirect branching" - typical for bootloader
 
 Phase 2: PRELOADER
--------------------
+-
 Module: PRELOADER (4,288 bytes, uncompressed)
 Type: 0x07 - Kernel Preloader
 Priority: HIGH (loaded first)
@@ -58,7 +58,7 @@ Evidence:
 - Small size (4KB) - only loading code
 
 Phase 3: Kernel Initialization
--------------------------------
+-
 Modules: KernelPriv (240KB) + KernelNonPriv (250KB)
 Type: 0x2B (Privileged) + 0x21 (Non-privileged)
 Priority: CRITICAL
@@ -81,7 +81,7 @@ Evidence:
 - Strings "KernelPriv" & "KernelNonPriv" in string_analysis.txt
 
 Phase 4: BRINGUP - Early Hardware Init
----------------------------------------
+-
 Module: BRINGUP (8,148 bytes, uncompressed)
 Type: 0x05 - Bring-up module
 Priority: EARLY (after kernel)
@@ -99,7 +99,7 @@ Evidence:
 - Relatively small size (8KB)
 
 Phase 5: Power Management
---------------------------
+
 Modules: PMHWSEQ (12,860 bytes) + MOFFM0_OVL (6,532 bytes)
 Priority: HIGH (needed for stability)
 
@@ -119,7 +119,7 @@ Evidence:
 - "MOFFM0_OVL", "MOFFM1_OVL" in string_analysis.txt
 
 Phase 6: BUP Overlays
-----------------------
+
 Modules: BUCLS_OVL (2,664 bytes) + BUPMSEQ_OVL (10,012 bytes)
 Priority: MEDIUM
 
@@ -132,7 +132,7 @@ BUPMSEQ_OVL actions:
 - Sequence boot-up operations
 
 Phase 7: File System
----------------------
+-
 Modules: EFFS_IOVL (8,408 bytes) + EFFS_OPOVL (12,056 bytes)
 Priority: MEDIUM (needed for NVRAM access)
 
@@ -150,7 +150,7 @@ Evidence:
 - Overlay architecture - loaded on demand
 
 Phase 8: Security & TPM
-------------------------
+
 Modules: TPM (265KB) + PKTPM (7,600 bytes) + PKTPMINIT_OVL (2,124 bytes)
 Priority: HIGH (for secure boot)
 
@@ -174,7 +174,7 @@ Evidence:
 - "SHA" algorithms found
 
 Phase 9: Services & Support
-----------------------------
+
 Modules: CLS (23KB) + ALIASCHECK_OVL (4,788 bytes) + SUPPORT_OVL (9,508 bytes)
 Priority: MEDIUM
 
@@ -192,7 +192,7 @@ SUPPORT_OVL actions:
 - Common utilities for other modules
 
 Phase 10: Advanced Features (Optional)
----------------------------------------
+-
 Modules: TDT (25KB) + UPEK (373KB)
 Priority: LOW (optional features)
 
