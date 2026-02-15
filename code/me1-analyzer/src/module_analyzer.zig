@@ -395,3 +395,177 @@ test "ModuleAnalyzer full workflow with BRINGUP" {
     const entry_point = try analyzer.findEntryPoint();
     try std.testing.expect(entry_point >= 0);
 }
+
+test "Property 4: Analysis script correctness for all ME1 modules" {
+    const allocator = std.testing.allocator;
+
+    const modules_dir = "reverse/me1/modules";
+    std.fs.cwd().access(modules_dir, .{}) catch {
+        std.debug.print("Skipping Property 4 test: modules directory not accessible\n", .{});
+        return error.SkipZigTest;
+    };
+
+    const all_modules = [_][]const u8{
+        "ALIASCHECK_OVL.bin",
+        "BRINGUP.bin",
+        "BUCLS_OVL.bin",
+        "BUPMSEQ_OVL.bin",
+        "CLS.bin",
+        "EFFS_IOVL.bin",
+        "EFFS_OPOVL.bin",
+        "KernelNonPriv.bin",
+        "KernelPriv.bin",
+        "MOFFM0_OVL.bin",
+        "PKTPM.bin",
+        "PKTPMINIT_OVL.bin",
+        "PMHWSEQ.bin",
+        "PRELOADER.bin",
+        "SUPPORT_OVL.bin",
+        "TDT.bin",
+        "TPM.bin",
+        "UPEK.bin",
+    };
+
+    const output_dir = "test_output_property4";
+    std.fs.cwd().makeDir(output_dir) catch |err| switch (err) {
+        error.PathAlreadyExists => {},
+        else => return err,
+    };
+    defer std.fs.cwd().deleteTree(output_dir) catch {};
+
+    var successful_analyses: usize = 0;
+    var failed_analyses: usize = 0;
+
+    for (all_modules) |module_name| {
+        const module_path = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ modules_dir, module_name });
+        defer allocator.free(module_path);
+
+        std.fs.cwd().access(module_path, .{}) catch {
+            std.debug.print("Skipping {s}: file not accessible\n", .{module_name});
+            failed_analyses += 1;
+            continue;
+        };
+
+        var analyzer = ModuleAnalyzer.init(allocator, module_path) catch |err| {
+            std.debug.print("Failed to init analyzer for {s}: {}\n", .{ module_name, err });
+            failed_analyses += 1;
+            continue;
+        };
+        defer analyzer.deinit();
+
+        const metadata = analyzer.extractMetadata() catch |err| {
+            std.debug.print("Failed to extract metadata for {s}: {}\n", .{ module_name, err });
+            failed_analyses += 1;
+            continue;
+        };
+        defer allocator.free(metadata.name);
+
+        try std.testing.expect(metadata.size > 0);
+
+        const functions = analyzer.extractFunctions() catch |err| {
+            std.debug.print("Failed to extract functions for {s}: {}\n", .{ module_name, err });
+            failed_analyses += 1;
+            continue;
+        };
+        defer {
+            for (functions) |func| {
+                allocator.free(func.name);
+            }
+            allocator.free(functions);
+        }
+
+        try std.testing.expect(functions.len > 0);
+
+        const strings = analyzer.extractStrings() catch |err| {
+            std.debug.print("Failed to extract strings for {s}: {}\n", .{ module_name, err });
+            failed_analyses += 1;
+            continue;
+        };
+        defer {
+            for (strings) |str| {
+                allocator.free(str.value);
+            }
+            allocator.free(strings);
+        }
+
+        const output_filename = try std.fmt.allocPrint(allocator, "{s}/{s}.json", .{ output_dir, module_name });
+        defer allocator.free(output_filename);
+
+        const output_file = try std.fs.cwd().createFile(output_filename, .{});
+        defer output_file.close();
+
+        var write_buffer: [4096]u8 = undefined;
+        var file_writer = output_file.writer(&write_buffer);
+        const writer = &file_writer.interface;
+
+        try writer.writeAll("{\n");
+        try writer.writeAll("  \"module_name\": \"");
+        try writer.writeAll(metadata.name);
+        try writer.writeAll("\",\n");
+
+        try writer.writeAll("  \"size\": ");
+        try writer.print("{d}", .{metadata.size});
+        try writer.writeAll(",\n");
+
+        try writer.writeAll("  \"compressed\": ");
+        try writer.writeAll(if (metadata.compressed) "true" else "false");
+        try writer.writeAll(",\n");
+
+        try writer.writeAll("  \"module_type\": \"");
+        try writer.writeAll(@tagName(metadata.module_type));
+        try writer.writeAll("\",\n");
+
+        try writer.writeAll("  \"functions\": [\n");
+        for (functions, 0..) |func, i| {
+            try writer.writeAll("    {\n");
+            try writer.writeAll("      \"address\": ");
+            try writer.print("{d}", .{func.address});
+            try writer.writeAll(",\n");
+            try writer.writeAll("      \"name\": \"");
+            try writer.writeAll(func.name);
+            try writer.writeAll("\",\n");
+            try writer.writeAll("      \"size\": ");
+            try writer.print("{d}", .{func.size});
+            try writer.writeAll("\n");
+            try writer.writeAll("    }");
+            if (i < functions.len - 1) {
+                try writer.writeAll(",");
+            }
+            try writer.writeAll("\n");
+        }
+        try writer.writeAll("  ],\n");
+
+        try writer.writeAll("  \"strings\": [\n");
+        for (strings, 0..) |str, i| {
+            try writer.writeAll("    {\n");
+            try writer.writeAll("      \"address\": ");
+            try writer.print("{d}", .{str.address});
+            try writer.writeAll(",\n");
+            try writer.writeAll("      \"value\": \"");
+            try writer.writeAll(str.value);
+            try writer.writeAll("\",\n");
+            try writer.writeAll("      \"length\": ");
+            try writer.print("{d}", .{str.length});
+            try writer.writeAll("\n");
+            try writer.writeAll("    }");
+            if (i < strings.len - 1) {
+                try writer.writeAll(",");
+            }
+            try writer.writeAll("\n");
+        }
+        try writer.writeAll("  ]\n");
+        try writer.writeAll("}\n");
+
+        try writer.flush();
+
+        const stat = try std.fs.cwd().statFile(output_filename);
+        try std.testing.expect(stat.size > 0);
+
+        successful_analyses += 1;
+        std.debug.print("Successfully analyzed {s}: {d} functions, {d} strings\n", .{ module_name, functions.len, strings.len });
+    }
+
+    std.debug.print("\nProperty 4 Test Summary: {d} successful, {d} failed out of {d} modules\n", .{ successful_analyses, failed_analyses, all_modules.len });
+
+    try std.testing.expect(successful_analyses > 0);
+}
