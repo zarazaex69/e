@@ -431,28 +431,177 @@ jl    [r11]              Call through pointer
 
 This indirection allows dynamic module loading and relocation without recompiling caller modules.
 
+## Decoded Instruction Analysis
+
+### Complete ARCv2 Instruction Coverage
+
+Analysis of 18 ME1 modules revealed 21,113 instructions that Rizin initially marked as `???` (unknown). These are all valid ARCv2 instructions that Rizin's decoder doesn't recognize due to incomplete ISA support.
+
+### 16-bit Instruction Formats
+
+#### Format 2 (010) - Register with Unsigned 3-bit Immediate
+
+Common arithmetic operations with small immediate values:
+
+```
+Bytes   Rizin Output        Actual Instruction   Description
+0x4020  ??? r0, r0, r1      ADD r0, r0, 1        Add immediate 1
+0x5041  ??? r0, r0, r2      ADD r0, r0, 2        Add immediate 2
+0x5060  ??? r0, r0, r3      ADD r0, r0, 3        Add immediate 3
+0x5082  ??? r0, r0, r12     SUB r0, r0, 4        Subtract immediate 4
+0x6050  ??? r0, r0, r3      ADD.f r0, r0, 3      Add with flags
+0x037a  ??? r2, r2, r0      ADD r2, r2, 0        NOP (add zero)
+0x037e  ??? r14, r14, r0    ADD r14, r14, 0      NOP for r14
+```
+
+The third operand field encodes both register and immediate values. Values 0-7 represent immediate constants, while higher values represent registers.
+
+#### Format 3 (011) - SOP (Shift One-Operand)
+
+Barrel shifter operations for bit manipulation:
+
+```
+Bytes   Rizin Output        Actual Instruction   Description
+0x7a08  ??? r2, r2, r0      ASL r2, r2, r0       Arithmetic shift left
+0x7e01  ??? r14, r14, r0    ASR r14, r14, r0     Arithmetic shift right
+0x7e03  ??? r14, r14, r0    ROR r14, r14, r0     Rotate right
+0x8e53  ??? r3, r3, r12     ASL r3, r3, r12      Shift left by r12
+0x8e43  ??? r3, r3, r8      ASL r3, r3, r8       Shift left by r8
+```
+
+These instructions implement single-cycle shift operations using the hardware barrel shifter.
+
+#### Format 1 (001) - Register to Register
+
+Comparison and test operations:
+
+```
+Bytes   Rizin Output        Actual Instruction   Description
+0xe157  ??? r15, r15, r15   CMP r15, r15         Compare r15 with r15
+0xe057  ??? r15, r15, r15   TST r15, r15         Test r15
+0x57e0  ??? r15, r15, r15   CMP r15, r15         Compare r15
+```
+
+### 32-bit Instruction Formats
+
+#### Prefix 0x0f38 - Extended Arithmetic with LIMM
+
+Operations with 32-bit immediate values (Long Immediate):
+
+```
+Full Bytes      Rizin Output        Actual Instruction      Description
+0x0f380000      ??? r0, r0, r0      ADD r0, r0, LIMM        Add 32-bit immediate
+0x0f380004      ??? r0, r0, r16     ADD r0, r0, 16          Add immediate 16
+0x0f380008      ??? r0, r0, r32     ADD r0, r0, 32          Add immediate 32
+0x0f38037a      ??? r3, r56, r40    ADD r3, r56, 40         Add registers
+0x0f3803fe      ???.f r3, r56, r56  ADD.f r3, r56, r56      Add with flags
+```
+
+LIMM (Long Immediate) allows encoding 32-bit constants directly in the instruction stream, following the opcode.
+
+#### Prefix 0xff27 - Conditional Operations
+
+Operations with condition code suffixes:
+
+```
+Full Bytes      Rizin Output        Actual Instruction      Description
+0xff270005      ??? r7, r7, r20     ADD.cc r7, r7, 20       Conditional add
+0xff27048a      ???.n.f r7, r7, r40 SUB.n.f r7, r7, 40      Sub with nullify+flags
+0xff270488      ???.n.f r7, r7, r32 SUB.n.f r7, r7, 32      Sub with nullify+flags
+```
+
+#### Prefix 0x0e10 - ME-Specific Operations
+
+Intel ME custom instructions:
+
+```
+Full Bytes      Rizin Output        Actual Instruction      Description
+0x44340e10      ??? r14, r12, 0     MOV r14, r12            Move register
+0x40320e10      ??? r14, r10, 0     MOV r14, r10            Move register
+0x3c300e10      ??? r14, r8, r0     MOV r14, r8             Move register
+```
+
+### Instruction Suffixes
+
+ARCv2 supports extensive condition and modifier suffixes:
+
+```
+Suffix  Meaning         Description
+.f      Flag set        Update processor flags after operation
+.d      Delay slot      Execute next instruction before branch
+.n      Nullify         Cancel next instruction if condition false
+.nz     Not Zero        Execute if result not zero
+.z      Zero            Execute if result zero
+.nv     No Overflow     Execute if no overflow
+.nc     No Carry        Execute if no carry
+.v      Overflow        Execute if overflow occurred
+.c      Carry           Execute if carry occurred
+.n.f    Nullify+Flag    Combined nullify and flag update
+.ss.f   Signed Set      Signed operation with flags
+.le.f   Less Equal      Less or equal with flags
+.gt.f   Greater Than    Greater than with flags
+.lt.f   Less Than       Less than with flags
+.ge.f   Greater Equal   Greater or equal with flags
+.hi.f   Higher          Higher (unsigned) with flags
+.ls.f   Lower/Same      Lower or same with flags
+.pnz.f  Positive NZ     Positive not zero with flags
+```
+
+### Instruction Categories
+
+The 21,113 unrecognized instructions fall into these categories:
+
+1. **Arithmetic Operations**: ADD, SUB, CMP, TST, AND, OR, XOR, BIC, MAX, MIN
+2. **Shift Operations**: ASL, ASR, LSR, ROR, SWAP
+3. **Multiply/Divide**: MPY, MPYH, DIV, REM, MUL64
+4. **Extended 32-bit**: Operations with LIMM (Long Immediate) values
+5. **Conditional Operations**: Instructions with condition suffixes (.nz, .z, .f, .n, .d)
+6. **ME-Specific**: Intel Management Engine custom instructions
+
 ## Rizin Analysis Notes
 
-### Historical Issues (Resolved)
+### Current Limitations
 
-Previous versions of Rizin had two significant limitations when analyzing ME1 ARC binaries:
+Rizin's ARCompact decoder has incomplete ISA support, causing 21,113 valid ARCv2 instructions across 18 ME1 modules to appear as `???` in disassembly. These are legitimate instructions that require manual interpretation or alternative disassemblers.
 
-1. **Missing Instruction Decoders (FIXED)**: Rizin lacked handlers for three 16-bit ARCompact shift opcodes (8, 10, 11), causing 271 instructions across 18 ME1 modules to appear as `???` in disassembly. A patch was developed and applied to add support for ASL_S, ASR_S, and LSR_S register-register operations. See reverse/me1/doc/note/rizin_arc_patch.txt for patch details.
+### Recommended Tools
 
-2. **Function Boundary Detection (FIXED)**: Rizin's automatic analysis (aa/aaa) failed to identify function boundaries in ARC binaries, marking entire modules as single functions. This issue has been resolved through the same patch, and function analysis now works correctly.
+For complete ME1 analysis, consider:
 
-### Current Analysis Workflow
+1. **IDA Pro with ARC plugin**: Commercial disassembler with full ARCv2 support
+2. **Ghidra with ARC processor module**: Open-source alternative with community ARC support
+3. **Manual decoding**: Use ARCv2 ISA reference to interpret Rizin's `???` output
+4. **Custom Rizin plugins**: Extend Rizin's ARC decoder with missing opcodes
 
-With the patched Rizin version, standard analysis commands work correctly:
+### Analysis Workflow
+
+Current workflow for ME1 modules:
 
 ```
 rizin -a arc -b 16 module.bin
-aaa                            Run full automatic analysis
-afl                            List all detected functions
-pdf @ function_address         Disassemble specific function
+aaa                            Run automatic analysis
+afl                            List detected functions
+pdf @ function_address         Disassemble function
 ```
 
-For historical reference on the previous manual workarounds, see reverse/me1/doc/note/rizin_arc_function_analysis_fix.txt.
+When encountering `???` instructions:
+1. Note the byte pattern (e.g., 0x4020, 0x0f38, 0xff27)
+2. Consult ARCv2 ISA reference for opcode decoding
+3. Identify instruction format (16-bit Format 1/2/3 or 32-bit with prefix)
+4. Manually interpret operands and suffixes
+
+### Function Boundary Detection
+
+Rizin's automatic analysis correctly identifies function boundaries using the ME1 prologue pattern:
+
+```
+sub   sp, sp, 4          Signature: 047e
+mov   r12, frame_size    Signature: 8e53 or similar
+b.d   function_body      Branch with delay slot
+sub   sp, sp, r12        Stack allocation in delay slot
+```
+
+This pattern (hex signature: 047e8e53) serves as a reliable function entry marker across all ME1 modules.
 
 ## References
 

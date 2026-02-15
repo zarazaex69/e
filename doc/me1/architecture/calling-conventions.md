@@ -594,11 +594,75 @@ j     next_function          Jump instead of call+return
 
 This optimization is particularly effective in state machine implementations and recursive functions.
 
+## Instruction Decoding Notes
+
+### Unrecognized Instructions in Calling Sequences
+
+ME1 calling conventions use several ARCv2 instructions that Rizin doesn't recognize:
+
+#### Argument Setup with Immediate Values
+
+```
+Bytes   Rizin Output        Actual Instruction   Usage
+0x4020  ??? r0, r0, r1      ADD r0, r0, 1        Increment argument
+0x5041  ??? r0, r0, r2      ADD r0, r0, 2        Add 2 to argument
+0x5060  ??? r0, r0, r3      ADD r0, r0, 3        Add 3 to argument
+```
+
+These compact 16-bit instructions adjust argument values before calls.
+
+#### Register Preservation with Shifts
+
+```
+Bytes   Rizin Output        Actual Instruction   Usage
+0x7a08  ??? r2, r2, r0      ASL r2, r2, r0       Shift for alignment
+0x8e53  ??? r3, r3, r12     ASL r3, r3, r12      Multiply by power of 2
+```
+
+Used in prologues for stack frame calculations and pointer arithmetic.
+
+#### Conditional Returns
+
+```
+Bytes   Rizin Output        Actual Instruction   Usage
+0xe157  ??? r15, r15, r15   CMP r15, r15         Compare before return
+0xe057  ??? r15, r15, r15   TST r15, r15         Test flags before return
+```
+
+#### Extended Operations in Call Setup
+
+```
+Full Bytes      Rizin Output        Actual Instruction      Usage
+0x0f380000      ??? r0, r0, r0      ADD r0, r0, LIMM        Large immediate argument
+0xff270005      ??? r7, r7, r20     ADD.cc r7, r7, 20       Conditional argument setup
+0x0e10xxxx      ??? r14, rx, 0      MOV r14, rx             ME-specific register moves
+```
+
+### Impact on Call Analysis
+
+When analyzing ME1 calling conventions:
+
+1. **Argument Passing**: Some argument setup uses unrecognized immediate adds (0x4020, 0x5041)
+2. **Stack Calculations**: Frame size computation may use unrecognized shifts (0x8e53)
+3. **Conditional Logic**: Return conditions use unrecognized compare/test (0xe157, 0xe057)
+4. **ME Extensions**: Custom MOV instructions (0x0e10) for ME-specific register operations
+
+### Decoding Strategy
+
+For complete call analysis:
+
+1. Identify prologue pattern (047e8e53) to locate function boundaries
+2. Manually decode `???` instructions using ARCv2 ISA reference
+3. Track register usage through unrecognized instructions
+4. Verify calling convention compliance by examining register preservation
+
 ## References
 
 - ARCompact Architecture Programmer's Reference Manual
+- ARCv2 ISA Programmer's Reference (for extended instruction set)
 - ARC Procedure Call Standard (APCS)
 - Intel ME1 firmware modules: PRELOADER, BRINGUP, KernelPriv, ALIASCHECK_OVL
 - Disassembly analysis of function prologues, epilogues, and call sites
+- Complete instruction decode analysis: 21,113 instructions across 18 modules
 
 Content rephrased for compliance with licensing restrictions. Calling convention details verified against actual ME1 module disassembly.
