@@ -1,5 +1,5 @@
                           CONCLUSION
-==
+
 
 Intel ME v1.x on ICH9M chipset implements NO meaningful firmware signature
 verification. The combination of:
@@ -13,7 +13,7 @@ verification. The combination of:
 This is likely due to ME v1.x being an early implementation before Intel
 implemented proper Secure Boot / Boot Guard mechanisms in later versions, or intel is goooners.
 
-==
+
 
                                concluding remarks 
 

@@ -4,7 +4,7 @@ Intel ME 1.x - Boot Sequence & Module Loading Chronology
 Purpose: Establish module loading sequence for structured reverse engineering approach.
 
 BOOT ARCHITECTURE
-==
+
 
 Firmware Structure:
 - Flash Partition Table ($FPT) at 0x10
@@ -13,7 +13,7 @@ Firmware Structure:
 - 18 modules total: 7 LZMA compressed, 11 uncompressed
 
 BOOT PHASES
-==
+
 
 Phase 0: Hardware Reset & ROM
 
@@ -271,7 +271,7 @@ Priority 4 - Overlay system:
 12. Links between base modules and overlays
 
 ANALYSIS TOOLS
-==
+
 
 Available tools:
 - m1u - module decompressor (working)
@@ -307,7 +307,7 @@ NEXT STEPS
    - Inter-module communication mechanism
 
 CONCLUSIONS
-==
+
 
 ME1 boot sequence:
 ROM → Entry(0x720A0) → PRELOADER → Kernel(Priv+NonPriv) → BRINGUP → 

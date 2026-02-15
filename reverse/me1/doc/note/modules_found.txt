@@ -35,9 +35,9 @@ Intel uses a custom LZMA implementation. The stream is likely raw, without the s
 All metadata (sizes, properties) is probably stored externally in the $MAN module manifest.
 
 Next step: Reverse engineer the $MAN manifest structure to find the required decompression parameters.
-==
+
 SUCCESS: Custom Unpacker 'm1u' Built
-==
+
 
 Developed a custom C tool 'm1u' to parse the firmware and handle the proprietary Intel LZMA format.
 The tool successfully bypasses the invalid LZMA header by reconstructing it with the correct uncompressed size from the $MOD entry.

@@ -1,5 +1,5 @@
 Key Findings from String Dump
-==
+
 
 Analysis of 11,000+ strings provided crucial context about the internal OS.
 

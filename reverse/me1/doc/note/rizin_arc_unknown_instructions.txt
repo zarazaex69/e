@@ -1,6 +1,6 @@
 RIZIN ARC DISASSEMBLER - UNKNOWN INSTRUCTION REPORT
 Intel ME1 Firmware Binary Analysis
-==
+
 
 DATE: 2025-02-15
 ANALYST: Automated Analysis System
@@ -8,18 +8,18 @@ TOOL: Rizin v0.8.2 (static build)
 TARGET: https://github.com/zarazaex69/e (reverse/me1/modules/)
 ARCHITECTURE: ARC (Argonaut RISC Core) - ARCompact 16-bit instruction set
 
-==
+
 EXECUTIVE SUMMARY
-==
+
 
 Total unknown instructions identified: 271
 Affected modules: 18 binary files
 Root cause: Missing opcode handlers in Rizin ARC disassembler plugin
 Location: librz/arch/isa_gnu/arc/arcompact-dis.c
 
-==
+
 ROOT CAUSE ANALYSIS
-==
+
 
 The Rizin ARC disassembler plugin lacks handlers for the following 16-bit
 ARCompact major opcodes:
@@ -45,9 +45,9 @@ op_SIMD = 9,
 
 op_LD_ADD = 12, op_ADD_SUB_SHIFT = 13, ...
 
-==
+
 16-BIT UNKNOWN INSTRUCTION DETAILS
-==
+
 
 INSTRUCTION FORMAT (16-bit):
 
@@ -113,9 +113,9 @@ LSR_S appears primarily in immediate forms (covered by op_Su5, opcode 23).
 
 Total occurrences: 0 (register-register form)
 
-==
+
 32-BIT UNKNOWN INSTRUCTION DETAILS
-==
+
 
 32-bit instructions follow extended format allowing access to registers r32-r63
 and larger immediate values.
@@ -169,9 +169,9 @@ Byte Pattern    Count  Type                         Description
 
 Total 32-bit unknown: 87
 
-==
+
 PER-MODULE STATISTICS
-==
+
 
 Module               File Size    Unknown Count    Notes
 
@@ -194,9 +194,9 @@ TDT.bin              25,948       14               Trusted download module
 TPM.bin              265,820      15               TPM module
 UPEK.bin             373,532      15               Biometrics (UPEK) module
 
-==
+
 BYTE PATTERN ANALYSIS
-==
+
 
 Pattern: 0x8e53 (87 occurrences)
 Raw bytes: 8e 53
@@ -230,9 +230,9 @@ Opcode:   10 (ASR_S)
 Fields:   B=0, C=6, A=0
 Decode:   ASR_S r0, r0, r6
 
-==
+
 DECODING CLASS REFERENCE
-==
+
 
 The Rizin ARC disassembler uses decodingClass variable to determine how to
 interpret and display instruction operands. For shift instructions:
@@ -246,9 +246,9 @@ Alternative classes to consider:
 decodingClass = 14: Single operand instructions
 decodingClass = 21: Immediate operand instructions
 
-==
+
 REGISTER ENCODING REFERENCE
-==
+
 
 Standard Registers (r0-r31):
 0-3:   General purpose (often used for return values, arguments)
@@ -272,9 +272,9 @@ Special Values:
 62:    Long immediate marker (indicates 32-bit immediate follows)
 61:    Short immediate marker (6-bit immediate in instruction)
 
-==
+
 PROPOSED FIX
-==
+
 
 FILE: librz/arch/isa_gnu/arc/arcompact-dis.c
 
@@ -301,9 +301,9 @@ decodingClass = 16;
 instrName = "lsr_s";
 break;
 
-==
+
 VERIFICATION METHOD
-==
+
 
 After applying fix, verify with:
 
@@ -313,9 +313,9 @@ Expected output change:
 Before: ??? r0, r0, r2
 After:  asl_s r0, r0, r2
 
-==
+
 REFERENCES
-==
+
 
 1. ARC Architecture Programmer's Reference
 Synopsys Documentation
@@ -329,6 +329,6 @@ Intel Corporation
 4. Rizin Source Code
 https://github.com/rizinorg/rizin
 
-==
+
 END OF REPORT
-==
+
