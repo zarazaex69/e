@@ -26,6 +26,7 @@ UPD: утилита m1u успешно извлекла все 18 модулей
 
 UPD: скоро в проекте начнется калосальные работы, полная ПОЛНАЯ документация intel me1 , максимально полеостью))
 
+UPD: я сделал патч в rizin... ( [see](https://github.com/rizinorg/rizin/pull/5922) ), чтобы пофиксить '???' ( [see](reverse/me1/doc/note/rizin_arc_unknown_instructions.txt) [see](reverse/me1/doc/note/rizin_arc_patch_summary.txt) [see](reverse/me1/doc/note/rizin_arc_patch.txt) ), тем самым я пофиксил ошибку с 1 огромной afl ( [see](reverse/me1/doc/note/rizin_arc_function_analysis_fix.txt) ).
  
 <div align="center">
 
