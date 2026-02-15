@@ -45,7 +45,18 @@ mov   r0, r1             r0 = r1
 mov   r0, immediate      r0 = immediate value
 lsr   r0, r1, count      Logical shift right
 lsr.f r0, r1, count      Logical shift right and set flags
+asl   r0, r1, count      Arithmetic shift left (same as lsl)
+asr   r0, r1, count      Arithmetic shift right (sign-extend)
 ```
+
+Barrel Shifter Operations:
+
+ARCompact includes a barrel shifter that performs shift operations in a single cycle. These operations are frequently used for bit manipulation, multiplication/division by powers of 2, and byte replication patterns.
+
+Common patterns:
+- Byte broadcast: `asl r0, r1, 8` followed by `or` to replicate bytes
+- Fast division: `lsr r0, r1, 2` divides by 4
+- Bit extraction: `asr r0, r1, count` with sign extension
 
 Control Flow:
 ```
@@ -284,15 +295,15 @@ This sequence demonstrates typical module initialization: stack setup, global po
 
 Kernel initialization reads processor status, performs mode checks, and dispatches to the appropriate handler through a multi-level indirection table.
 
-### Memory Copy Loop
+### Memory Fill (memset) with Byte Broadcast Pattern
 
 ```
-0x0000004c    extb  r1, r1             Extract byte from r1
-0x00000050    ???   r3, r1, 8          Shift left by 8 (replicate byte)
-0x00000054    or    r3, r3, r1         Combine: 0x0000XX00 | 0x000000XX
-0x00000058    ???   r1, r3, 0x10       Shift left by 16
+0x0000004c    extb  r1, r1             Extract byte: 0x...77 -> 0x00000077
+0x00000050    asl   r3, r1, 8          Shift left by 8: 0x00007700
+0x00000054    or    r3, r3, r1         Combine: 0x00007700 | 0x00000077 = 0x00007777
+0x00000058    asl   r1, r3, 0x10       Shift left by 16: 0x77770000
 0x0000005c    sub.f 0, r2, 8           Test if count >= 8
-0x00000060    or    r3, r1, r3         Combine: 0xXXXX0000 | 0x0000XXXX
+0x00000060    or    r3, r1, r3         Combine: 0x77770000 | 0x00007777 = 0x77777777
 0x00000064    bnc   0x00000078         Branch if count < 8
 0x00000068    mov   r1, r0             Copy destination pointer
 0x0000006c    mov.f 0, r2              Test count
@@ -303,7 +314,7 @@ Kernel initialization reads processor status, performs mode checks, and dispatch
 0x00000088    add   r1, r1, 1          Increment pointer
 0x0000008c    and.f 0, r1, 3           Test alignment again
 0x00000090    sub   r2, r2, 1          Decrement counter
-0x00000098    ???   r4, r2, 2          Shift right by 2 (divide by 4)
+0x00000098    lsr   r4, r2, 2          Shift right by 2 (divide by 4 for word count)
 0x0000009c    and   r2, r2, 3          Get remainder (count % 4)
 0x000000a0    st    r3, [r1]           Store word (aligned)
 0x000000a4    sub.f r4, r4, 1          Decrement word counter with flags
@@ -311,7 +322,7 @@ Kernel initialization reads processor status, performs mode checks, and dispatch
 0x000000ac    bnz   0x000000a0         Loop if not zero
 ```
 
-This code implements an optimized memory fill operation. The first section replicates a single byte value across all four bytes of a register (0xXX becomes 0xXXXXXXXX). The code then handles unaligned start addresses byte-by-byte before switching to word operations for the bulk of the fill, and finishes with remaining bytes.
+This is an optimized memset implementation using the byte broadcast pattern. The sequence extb -> asl 8 -> or -> asl 16 -> or is the signature of compiler-generated memset on 32-bit architectures. It replicates a single byte across all four bytes of a register (0x77 becomes 0x77777777), allowing word-sized stores instead of byte-by-byte operations. The code handles unaligned addresses byte-by-byte first, then switches to word operations for the bulk fill, achieving 4x throughput improvement.
 
 ### Hardware Loop
 
@@ -425,17 +436,21 @@ This indirection allows dynamic module loading and relocation without recompilin
 Rizin's ARC support has incomplete instruction decoding. Some instructions appear as `???` in disassembly output:
 
 ```
-0x00000050    ???   r3, r1, 8           Unknown shift/rotate operation
-0x00000058    ???   r1, r3, 0x10        Unknown operation
-0x00000004    ???   r12, r12, 0x19      Barrel shifter operation
+0x00000050    ???   r3, r1, 8           Barrel shifter: asl r3, r1, 8
+0x00000058    ???   r1, r3, 0x10        Barrel shifter: asl r1, r3, 0x10
+0x00000098    ???   r4, r2, 2           Barrel shifter: lsr r4, r2, 2
+0x00000004    ???   r12, r12, 0x19      Barrel shifter: lsr r12, r12, 0x19
 ```
 
-These typically represent:
-- Barrel shifter operations (asl, lsr, asr, ror)
-- Extended arithmetic (mac, mpy)
-- Bit manipulation instructions
+These are barrel shifter operations that Rizin fails to decode:
+- asl (arithmetic shift left) - used for byte replication and fast multiplication
+- lsr (logical shift right) - used for division by powers of 2
+- asr (arithmetic shift right) - used for signed division with sign extension
 
-The `???` at offset 0x04 in KernelPriv is a right shift operation (lsr or asr) by 0x19 (25 bits), used to extract high-order status bits from the processor status register.
+Pattern recognition helps identify these operations:
+- Byte broadcast pattern: extb -> asl 8 -> or -> asl 16 -> or (memset signature)
+- Division by 4: lsr by 2 (converting byte count to word count)
+- Status bit extraction: lsr by large value (0x19 = 25 bits) to get high-order bits
 
 Manual analysis of instruction bytes is required for complete understanding. Refer to Synopsys ARCompact Programmer's Reference Manual for full instruction encoding details.
 
