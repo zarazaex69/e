@@ -109,11 +109,6 @@ pub const RizinSession = struct {
         try argv.append(self.allocator, "-q");
         try argv.append(self.allocator, "-a");
         try argv.append(self.allocator, self.arch);
-        try argv.append(self.allocator, "-b");
-
-        const bits_str = try std.fmt.allocPrint(self.allocator, "{d}", .{self.bits});
-        errdefer self.allocator.free(bits_str);
-        try argv.append(self.allocator, bits_str);
 
         try argv.append(self.allocator, "-c");
         try argv.append(self.allocator, cmd);
@@ -136,8 +131,6 @@ pub const RizinSession = struct {
         defer self.allocator.free(stderr_data);
 
         const term = try child.wait();
-
-        self.allocator.free(bits_str);
 
         if (term != .Exited or term.Exited != 0) {
             self.allocator.free(stdout_data);
