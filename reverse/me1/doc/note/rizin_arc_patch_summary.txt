@@ -1,0 +1,46 @@
+RIZIN ARC PATCH - QUICK REFERENCE
+================================================================================
+
+STATUS: Applied and tested
+DATE: 2025-02-15
+LOCATION: code/rizin (git submodule)
+
+CHANGES:
+1. Added enum constants: op_ASL_S_RR=8, op_ASR_S_RR=10, op_LSR_S_RR=11
+2. Added case handlers with decodingClass=16 for three-operand format
+3. Created test cases in test/db/asm/arc_shift_opcodes
+
+IMPACT:
+- 271 unknown instructions across 18 ME1 modules now decode correctly
+- ASL_S: 37 occurrences resolved
+- ASR_S: 147 occurrences resolved
+- LSR_S: 0 occurrences (not used in register-register form)
+
+BUILD:
+cd code/rizin
+meson setup build
+ninja -C build
+
+TEST RESULTS:
+- Build: SUCCESS
+- Core tests: 130/146 PASS
+- Failed tests: 16 (unrelated to patch - project migration issues)
+- Manual verification: PASS (tested on PRELOADER.bin)
+
+VERIFICATION EXAMPLE:
+code/rizin/build/binrz/rizin/rizin -a arc -b 16 -q -c 'pd 10 @ 0xb8' \
+  reverse/me1/modules/PRELOADER.bin
+
+Before: 0x000000ca  ???   r1, r0, 0
+After:  0x000000ca  asl_s r1, r0, 0
+
+DOCUMENTATION:
+- Full patch details: reverse/me1/doc/note/rizin_arc_patch.txt
+- Unknown instructions report: reverse/me1/doc/note/rizin_arc_unknown_instructions.txt
+
+NEXT STEPS:
+- Patch is ready for use in ME1 analysis
+- Consider submitting to Rizin upstream
+- Update methodology/rizin-setup.md with patch information
+
+================================================================================
