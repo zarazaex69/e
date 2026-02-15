@@ -29,6 +29,9 @@ one "DEADBEEF"and.... nothing
 the only "security" here is a joke 64-bit hash that my grandmother could
 brute-force on her toaster. Intel really shipped this to millions of laptops.
 wild.
+
+kek 
+
 gnite nerds ✌️
 
 - zarazaex

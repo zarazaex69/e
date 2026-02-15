@@ -1,0 +1,334 @@
+RIZIN ARC DISASSEMBLER - UNKNOWN INSTRUCTION REPORT
+Intel ME1 Firmware Binary Analysis
+================================================================================
+
+DATE: 2025-02-15
+ANALYST: Automated Analysis System
+TOOL: Rizin v0.8.2 (static build)
+TARGET: https://github.com/zarazaex69/e (reverse/me1/modules/)
+ARCHITECTURE: ARC (Argonaut RISC Core) - ARCompact 16-bit instruction set
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Total unknown instructions identified: 271
+Affected modules: 18 binary files
+Root cause: Missing opcode handlers in Rizin ARC disassembler plugin
+Location: librz/arch/isa_gnu/arc/arcompact-dis.c
+
+================================================================================
+ROOT CAUSE ANALYSIS
+================================================================================
+
+The Rizin ARC disassembler plugin lacks handlers for the following 16-bit
+ARCompact major opcodes:
+
+OPCODE 8  (0x08) - ASL_S (Arithmetic Shift Left, register-register)
+OPCODE 10 (0x0A) - ASR_S (Arithmetic Shift Right, register-register)  
+OPCODE 11 (0x0B) - LSR_S (Logical Shift Right, register-register)
+
+These opcodes are defined in the ARC Architecture Programmer's Reference but
+are not implemented in the switch-case statement of dsmOneArcInst() function.
+
+FILE: librz/arch/isa_gnu/arc/arcompact-dis.c
+FUNCTION: dsmOneArcInst()
+LINE: ~752 (switch statement start)
+
+Current opcode enum definition (incomplete):
+
+op_BC = 0, op_BLC = 1, op_LD = 2, op_ST = 3,
+op_MAJOR_4 = 4, op_MAJOR_5 = 5, op_MAJOR_6 = 6,
+op_SIMD = 9,
+
+// OPCODES 7, 8, 10, 11 - MISSING
+
+op_LD_ADD = 12, op_ADD_SUB_SHIFT = 13, ...
+
+================================================================================
+16-BIT UNKNOWN INSTRUCTION DETAILS
+================================================================================
+
+INSTRUCTION FORMAT (16-bit):
+
+Bits 15-11: Major Opcode (5 bits)
+Bit  10-8: B field - Source register 1 (3 bits)
+Bit  7-5:  C field - Source register 2 / Shift amount (3 bits)
+Bit  4-0:  A field - Destination register (5 bits)
+
+Format: INSTRUCTION[.f] dest, src1, src2
+
+Modifier .f: Set processor flags (Zero, Negative, Carry, Overflow)
+
+--------------------------------------------------------------------------------
+OPCODE 8 (0x08) - ASL_S - Arithmetic Shift Left
+--------------------------------------------------------------------------------
+
+Description: Shifts source register left by amount specified in second source
+register. Fills vacated bits with zeros.
+
+Operation:    dest = src1 << src2
+
+Byte Pattern  Count  Decoded Instruction          Operation
+--------------------------------------------------------------------------------
+0x2040        24     ASL_S r0, r0, r2              r0 = r0 << r2
+0x6140        11     ASL_S r1, r0, r6              r1 = r0 << r6
+0x6040        2      ASL_S r0, r0, r6              r0 = r0 << r6
+
+Total occurrences: 37
+
+--------------------------------------------------------------------------------
+OPCODE 10 (0x0A) - ASR_S - Arithmetic Shift Right
+--------------------------------------------------------------------------------
+
+Description: Shifts source register right by amount specified in second source
+register. Preserves sign bit (sign-extends).
+
+Operation:    dest = src1 >> src2 (arithmetic, sign-extended)
+
+Byte Pattern  Count  Decoded Instruction          Operation
+--------------------------------------------------------------------------------
+0x8e53        87     ASR_S r14, r7, r0             r14 = r7 >> r0
+0x2050        20     ASR_S r0, r0, r2              r0 = r0 >> r2
+0x6050        20     ASR_S r0, r0, r6              r0 = r0 >> r6
+0xe157        7      ASR_S.f r1, r7, r6            r1 = r7 >> r6 (flags set)
+0x4150        4      ASR_S r1, r0, r4              r1 = r0 >> r4
+0x8250        4      ASR_S r2, r1, r0              r2 = r1 >> r0
+0x6150        3      ASR_S r1, r0, r6              r1 = r0 >> r6
+0xe057        2      ASR_S.f r0, r7, r6            r0 = r7 >> r6 (flags set)
+
+Total occurrences: 147
+
+--------------------------------------------------------------------------------
+OPCODE 11 (0x0B) - LSR_S - Logical Shift Right
+--------------------------------------------------------------------------------
+
+Description: Shifts source register right by amount specified in second source
+register. Fills vacated bits with zeros (zero-extends).
+
+Operation:    dest = src1 >> src2 (logical, zero-extended)
+
+No pure LSR_S register-register variants detected in current analysis.
+LSR_S appears primarily in immediate forms (covered by op_Su5, opcode 23).
+
+Total occurrences: 0 (register-register form)
+
+================================================================================
+32-BIT UNKNOWN INSTRUCTION DETAILS
+================================================================================
+
+32-bit instructions follow extended format allowing access to registers r32-r63
+and larger immediate values.
+
+INSTRUCTION FORMAT (32-bit):
+
+Bits 31-26: Primary Opcode (6 bits)
+Remaining bits: Sub-opcode and operands
+
+Extended registers mapping:
+r56 = gp (Global Pointer)
+r57 = fp (Frame Pointer)  
+r58 = sp (Stack Pointer)
+r59 = blink (Branch Link Register)
+r60 = lp_count (Loop Count)
+r63 = pcl (Program Counter Literal)
+
+--------------------------------------------------------------------------------
+Byte Pattern    Count  Type                         Description
+--------------------------------------------------------------------------------
+0x0f38037a      12     Extended SHIFT               Shift with r56(gp), r40(fp)
+0x0f3803fe      10     Extended SHIFT.f             Shift with flags, ext. regs
+0x202a0020      10     Extended ASL                 Shift with extended register
+0x0f380490      8      Extended SHIFT.f             Shift with flags
+0x0f380008      5      Extended SHIFT               Shift with r32
+0x0f382001      5      Extended SHIFT               Result in r32
+0x0f380000      5      Extended SHIFT               NOP (shift by 0)
+0x0f3800fc      5      Extended SHIFT.f             Shift with ext. regs
+0x0f380004      4      Extended SHIFT               Shift with r16
+0x0f38008e      2      Extended SHIFT.f             Shift with r56
+0x0f380003      2      Extended SHIFT               Shift with r12
+0x0038008e      1      Extended SHIFT.f             Shift with r56
+0x0f380005      1      Extended SHIFT               Shift with r20
+0x9f09197e      1      Extended SHIFT               Extended operation
+0x65090c80      1      Extended SHIFT.f             Extended operation
+0x0538802e      1      Extended SHIFT               Extended operation
+0x80300020      1      Extended ASL                 r16 = r16 << 0
+0x80310020      1      Extended ASL                 r17 = r17 << 0
+0x80320020      1      Extended ASL                 r18 = r18 << 0
+0x80330020      1      Extended ASL                 r19 = r19 << 0
+0x80340020      1      Extended ASL                 r20 = r20 << 0
+0x80350020      1      Extended ASL                 r21 = r21 << 0
+0x80360020      1      Extended ASL                 r22 = r22 << 0
+0x80370020      1      Extended ASL                 r23 = r23 << 0
+0x80380020      1      Extended ASL                 r16 = r16 << 0
+0x80390020      1      Extended ASL                 r17 = r17 << 0
+0x803a0020      1      Extended ASL                 r18 = r18 << 0
+0x803b0020      1      Extended ASL                 r19 = r19 << 0
+0x103e0e10      1      Extended SHIFT               r14 operation
+0x3f090c78      1      Extended SHIFT               Extended operation
+
+Total 32-bit unknown: 87
+
+================================================================================
+PER-MODULE STATISTICS
+================================================================================
+
+Module               File Size    Unknown Count    Notes
+--------------------------------------------------------------------------------
+ALIASCHECK_OVL.bin   4,788        15               Alias checking overlay
+BRINGUP.bin          8,148        15               System bringup module
+BUCLS_OVL.bin        2,664        15               Backup/class overlay
+BUPMSEQ_OVL.bin      10,012       14               Power management overlay
+CLS.bin              23,172       15               Classification module
+EFFS_IOVL.bin        8,408        13               File system I/O overlay
+EFFS_OPOVL.bin       12,056       15               File system operation overlay
+KernelNonPriv.bin    250,780      18               Non-privileged kernel
+KernelPriv.bin       240,900      18               Privileged kernel
+MOFFM0_OVL.bin       6,532        14               Module overlay
+PKTPM.bin            7,600        14               TPM packet handler
+PKTPMINIT_OVL.bin    2,124        14               TPM initialization overlay
+PMHWSEQ.bin          12,860       18               Power management hardware
+PRELOADER.bin        4,288        14               Boot preloader
+SUPPORT_OVL.bin      9,508        15               Support overlay
+TDT.bin              25,948       14               Trusted download module
+TPM.bin              265,820      15               TPM module
+UPEK.bin             373,532      15               Biometrics (UPEK) module
+
+================================================================================
+BYTE PATTERN ANALYSIS
+================================================================================
+
+Pattern: 0x8e53 (87 occurrences)
+Raw bytes: 8e 53
+LE value: 0x538e
+Binary:   0101 0011 1000 1110
+Opcode:   10 (ASR_S)
+Fields:   B=7, C=0, A=14
+Decode:   ASR_S r14, r7, r0
+
+Pattern: 0x2040 (24 occurrences)
+Raw bytes: 20 40
+LE value: 0x4020
+Binary:   0100 0000 0010 0000
+Opcode:   8 (ASL_S)
+Fields:   B=0, C=2, A=0
+Decode:   ASL_S r0, r0, r2
+
+Pattern: 0x2050 (20 occurrences)
+Raw bytes: 20 50
+LE value: 0x5020
+Binary:   0101 0000 0010 0000
+Opcode:   10 (ASR_S)
+Fields:   B=0, C=2, A=0
+Decode:   ASR_S r0, r0, r2
+
+Pattern: 0x6050 (20 occurrences)
+Raw bytes: 60 50
+LE value: 0x5060
+Binary:   0101 0000 0110 0000
+Opcode:   10 (ASR_S)
+Fields:   B=0, C=6, A=0
+Decode:   ASR_S r0, r0, r6
+
+================================================================================
+DECODING CLASS REFERENCE
+================================================================================
+
+The Rizin ARC disassembler uses decodingClass variable to determine how to
+interpret and display instruction operands. For shift instructions:
+
+decodingClass = 16: Used for 3-operand instructions with format:
+INSTRUCTION dest, src1, src2
+
+Recommended decodingClass for opcodes 8, 10, 11: 16
+
+Alternative classes to consider:
+decodingClass = 14: Single operand instructions
+decodingClass = 21: Immediate operand instructions
+
+================================================================================
+REGISTER ENCODING REFERENCE
+================================================================================
+
+Standard Registers (r0-r31):
+0-3:   General purpose (often used for return values, arguments)
+4-9:   General purpose
+10-15: General purpose
+16-25: General purpose
+26:    gp (Global Pointer)
+27:    fp (Frame Pointer)
+28:    sp (Stack Pointer)
+29:    ilink1 (Interrupt link 1)
+30:    ilink2 (Interrupt link 2)
+31:    blink (Branch link register)
+
+Extended Registers (r32-r63):
+32-59: Extended general purpose
+60:    lp_count (Loop count register)
+61-62: Reserved
+63:    pcl (Program Counter Literal)
+
+Special Values:
+62:    Long immediate marker (indicates 32-bit immediate follows)
+61:    Short immediate marker (6-bit immediate in instruction)
+
+================================================================================
+PROPOSED FIX
+================================================================================
+
+FILE: librz/arch/isa_gnu/arc/arcompact-dis.c
+
+CHANGE 1 - Add opcode constants (after line ~635):
+
+op_ASL_S_RR = 8,    /* ASL_S register-register (16-bit) */
+op_ASR_S_RR = 10,   /* ASR_S register-register (16-bit) */
+op_LSR_S_RR = 11,   /* LSR_S register-register (16-bit) */
+
+CHANGE 2 - Add case handlers in switch statement (after op_LD_ADD case):
+
+case op_ASL_S_RR:
+decodingClass = 16;
+instrName = "asl_s";
+break;
+
+case op_ASR_S_RR:
+decodingClass = 16;
+instrName = "asr_s";
+break;
+
+case op_LSR_S_RR:
+decodingClass = 16;
+instrName = "lsr_s";
+break;
+
+================================================================================
+VERIFICATION METHOD
+================================================================================
+
+After applying fix, verify with:
+
+rizin -e asm.arch=arc -e asm.bits=16 -q -c 'pd 100' <binary_file>
+
+Expected output change:
+Before: ??? r0, r0, r2
+After:  asl_s r0, r0, r2
+
+================================================================================
+REFERENCES
+================================================================================
+
+1. ARC Architecture Programmer's Reference
+Synopsys Documentation
+
+2. ARCompact Instruction Set Architecture Reference
+ARC International
+
+3. Intel Management Engine (ME) Architecture
+Intel Corporation
+
+4. Rizin Source Code
+https://github.com/rizinorg/rizin
+
+================================================================================
+END OF REPORT
+================================================================================
