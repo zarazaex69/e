@@ -431,64 +431,28 @@ jl    [r11]              Call through pointer
 
 This indirection allows dynamic module loading and relocation without recompiling caller modules.
 
-## Limitations in Rizin Analysis
+## Rizin Analysis Notes
 
-Rizin's ARC support has incomplete instruction decoding. Some instructions appear as `???` in disassembly output:
+### Historical Issues (Resolved)
+
+Previous versions of Rizin had two significant limitations when analyzing ME1 ARC binaries:
+
+1. **Missing Instruction Decoders (FIXED)**: Rizin lacked handlers for three 16-bit ARCompact shift opcodes (8, 10, 11), causing 271 instructions across 18 ME1 modules to appear as `???` in disassembly. A patch was developed and applied to add support for ASL_S, ASR_S, and LSR_S register-register operations. See reverse/me1/doc/note/rizin_arc_patch.txt for patch details.
+
+2. **Function Boundary Detection (FIXED)**: Rizin's automatic analysis (aa/aaa) failed to identify function boundaries in ARC binaries, marking entire modules as single functions. This issue has been resolved through the same patch, and function analysis now works correctly.
+
+### Current Analysis Workflow
+
+With the patched Rizin version, standard analysis commands work correctly:
 
 ```
-0x00000050    ???   r3, r1, 8           Barrel shifter: asl r3, r1, 8
-0x00000058    ???   r1, r3, 0x10        Barrel shifter: asl r1, r3, 0x10
-0x00000098    ???   r4, r2, 2           Barrel shifter: lsr r4, r2, 2
-0x00000004    ???   r12, r12, 0x19      Barrel shifter: lsr r12, r12, 0x19
+rizin -a arc -b 16 module.bin
+aaa                            Run full automatic analysis
+afl                            List all detected functions
+pdf @ function_address         Disassemble specific function
 ```
 
-These are barrel shifter operations that Rizin fails to decode:
-- asl (arithmetic shift left) - used for byte replication and fast multiplication
-- lsr (logical shift right) - used for division by powers of 2
-- asr (arithmetic shift right) - used for signed division with sign extension
-
-Pattern recognition helps identify these operations:
-- Byte broadcast pattern: extb -> asl 8 -> or -> asl 16 -> or (memset signature)
-- Division by 4: lsr by 2 (converting byte count to word count)
-- Status bit extraction: lsr by large value (0x19 = 25 bits) to get high-order bits
-
-Manual analysis of instruction bytes is required for complete understanding. Refer to Synopsys ARCompact Programmer's Reference Manual for full instruction encoding details.
-
-### Function Boundary Detection
-
-Rizin's automatic analysis (aa/aaa) fails to identify function boundaries in ARC binaries. The entire module gets marked as a single function, making analysis impractical.
-
-Two workarounds exist:
-
-Method 1 - Automatic function definition at all prologue locations:
-```
-af @@/x 047e8e53
-```
-
-This command runs `af` (analyze function) at every location matching the hex pattern 047e8e53. However, this only creates function entries without proper boundaries.
-
-Method 2 - Manual function definition with boundaries (recommended):
-```
-s 0xb8; afu 0xcc
-s 0xcc; afu 0xe0
-s 0xe0; afu 0xf4
-```
-
-The `afu` (analyze function until) command defines a function from current seek position until the specified end address. This produces accurate function boundaries and enables proper disassembly with `pdf`.
-
-Complete workflow for ALIASCHECK_OVL module:
-```
-/x 047e8e53                    Search for prologue pattern
-s 0xb8; afu 0xcc               Define first function
-s 0xcc; afu 0xe0               Define second function
-s 0xe0; afu 0xf4               Continue for all matches
-...
-afl                            List all defined functions
-pdf @ fcn.000000b8             Disassemble specific function
-aaaa                           Run full analysis with xrefs
-```
-
-After defining functions manually, run `aaaa` to perform cross-reference analysis and identify function calls between modules. See methodology/rizin-setup.md for automation scripts.
+For historical reference on the previous manual workarounds, see reverse/me1/doc/note/rizin_arc_function_analysis_fix.txt.
 
 ## References
 
