@@ -4,3 +4,11 @@
 2. At 0x1524c, code reads a 32-bit word from physical address 0x2C (likely a hardware status register).
 3. The high byte of this word is checked.
 4. After initialization and checks, control is transferred via `bl` (call) to the function at 0x1665c. This appears to be the next stage of initialization.
+5. The initialization code calls fcn.0001665c.
+6. fcn.0001665c acts as a dispatcher, sequentially calling:
+   - fcn.00016444
+   - fcn.00016658
+7. Our next target is to analyze the first subroutine: fcn.00016444.
+7. Analysis of fcn.00016444 reveals it is a "trampoline" function.
+8. Its only purpose is to immediately jump (`b`) to address 0xff816682.
+9. The actual code to analyze is at the jump's destination. Our next target is 0xff816682.
