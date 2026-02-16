@@ -16,3 +16,6 @@
    - Clears bit 24 in register r13 (likely interrupt control or supervisor mode flag).
    - Immediately calls fcn.0001690c.
 10. The purpose of fcn.0001690c must be determined next.
+10. fcn.0001690c appears to contain a loop calling fcn.0001655c.
+11. The beginning of the function is not decoding properly, possibly indicating mixed 32-bit instructions or data tables.
+12. Hypothesis: This is a polling loop waiting for a hardware state change.
