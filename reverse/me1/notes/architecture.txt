@@ -1,0 +1,1 @@
+Intel ME version 1 uses the ARC architecture, with a set of both 32-bit and 16-bit commands, so it is better not to specify the -b flag in RIZIN.
