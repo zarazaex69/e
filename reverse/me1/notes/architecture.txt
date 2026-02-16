@@ -8,3 +8,8 @@
 ## Analysis Toolchain Setup
 - **Tool:** rizin
 - **Launch Command:** rizin -a arc -b 16 -B <base_addr> <file>
+
+## Memory Management
+- The boot sequence reaches a point where it enables the MMU and switches from physical to virtual addressing.
+- This is evidenced by a jump (`b`) to a high virtual address (e.g., 0xff816682) which does not correspond to a physical file offset.
+- **Next Step:** The primary analysis target is now to find the code that sets up the page tables and enables the MMU. This code must execute *before* the jump into virtual space.
