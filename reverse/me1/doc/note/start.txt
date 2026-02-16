@@ -1,8 +1,0 @@
-Intel ME v1 - ThinkPad X200
-
-
-bin:
-- me1x200.bin (main)
-- me1x200.2.bin (double)
-start analyze
-

@@ -1,4 +1,0 @@
-INFO ABOUT FILES
-=
-
-me1x200.bin - thinkpad x200 binary intel me [ v1 ]

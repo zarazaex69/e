@@ -1,4 +1,0 @@
-ABOUT
-=
-
-CODE partition entry point found at 0x720A0. Discovered from module header offset field.

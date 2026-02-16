@@ -9,7 +9,7 @@
 
 
 ## About
-e is a reverse intel me 1/11 project
+e is a reverse intel me 1 project
 
 ![Work](asset/work.png)
 
@@ -31,6 +31,8 @@ I aim to fully analyze the Intel Management Engine using r2, Rizin, and Ghidra. 
 **UPD:** скоро в проекте начнется калосальные работы, полная документация intel me1 , максимально полностью ка могу))
 
 **UPD:** я сделал патч в rizin... ( [see](https://github.com/rizinorg/rizin/pull/5922) ), чтобы пофиксить "???" ( [see](reverse/me1/doc/note/rizin_arc_unknown_instructions.txt) [see](reverse/me1/doc/note/rizin_arc_patch_summary.txt) [see](reverse/me1/doc/note/rizin_arc_patch.txt) ), тем самым я пофиксил ошибку с 1 огромной функцией ( [see](reverse/me1/doc/note/rizin_arc_function_analysis_fix.txt) ).
+
+**UPD:** проект начат с нуля и перезапущен, нацелен только на me 1.ss
  
 </details>
 <div align="center">

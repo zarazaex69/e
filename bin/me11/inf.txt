@@ -1,6 +1,0 @@
-INFO ABOUT FILES
-=
-
-me11z370.bin - asrock z370 binary intel me [ v11 ]
-me11z390.bin - asrock z390 binary intel me [ v11 ]
-

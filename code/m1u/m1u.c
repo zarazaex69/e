@@ -271,6 +271,9 @@ int main(int argc, char *argv[]) {
             }
             
             printf("[%d/%d] Extracting '%s'...\n", i + 1, module_count, name);
+                        printf("   DEBUG INFO: Load Addr: 0x%08x | Entry: 0x%08x\n", 
+                   modules[i]->load_address, modules[i]->entry_point);
+
             
             if (extract_single_module(firmware, firmware_size, modules[i], name) == 0) {
                 success_count++;
