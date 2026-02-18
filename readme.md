@@ -37,6 +37,8 @@ I aim to fully analyze the Intel Management Engine using r2, Rizin, and Ghidra. 
 **UPD:** проект ушел с 2 плана на 3, и почти 4, ппродолжаю его развитие чисто ради статьи на хабр, пока что я застрял на BRINGUP, не от сложности, а от лени
 
 **UPD:** проект настолтько перешел в long time support что я попросил нейронку обьеденить все доки в файлы, бб, мб займет реально месяца
+
+**UPD:** я закончил с BRINGUP ( [see](code/reconstructed/bringup_logic.c) [see](reverse/me1/notes/bringup.txt) ) пока думаю на пару дней отойду от проекта 
  
 </details>
 <div align="center">
