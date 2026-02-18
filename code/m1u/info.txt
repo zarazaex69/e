@@ -1,0 +1,336 @@
+M1U - Intel ME v1 Module Unpacker
+==================================
+
+Utility for extracting and decompressing modules from Intel Management Engine version 1 firmware.
+
+Author: zarazaex
+License: BSD-3-Clause
+Language: C
+Compiler: Zig CC
+Dependencies: liblzma
+
+
+PURPOSE
+=======
+
+m1u is designed for:
+- Finding and extracting modules from ME1 firmware
+- Decompressing LZMA-compressed modules
+- Bulk extraction of all modules from an image
+- Analyzing ME1 firmware structure
+
+
+ME1 FIRMWARE ARCHITECTURE
+==========================
+
+Intel ME v1 firmware has the following structure:
+1. Flash Partition Table (FPT)
+   Signature: "$FPT" (0x24465054)
+   Offset: Variable, searched in image
+   Contains: Firmware partition table
+2. CODE Partition
+   Name: "CODE"
+   Owner: Variable
+   Contains: ME executable code
+3. Manifest ($MAN)
+   Signature: "$MAN" (0x244D414E)
+   Location: Inside CODE partition
+   Contains: Module metadata
+4. Module Entries ($MOD)
+   Signature: "$MOD" (0x244D4F44)
+   Header size: 0x50 (80 bytes)
+   Contains: Module metadata and data
+
+
+DATA STRUCTURES
+===============
+
+FPT Entry (28 bytes):
+  +0x00: char name[4]        - Partition name
+  +0x04: char owner[4]       - Partition owner
+  +0x08: uint32_t offset     - Offset in image
+  +0x0C: uint32_t size       - Partition size
+  +0x10: uint32_t tokens     - Access tokens
+  +0x14: uint32_t reserved[2]- Reserved
+  +0x1C: uint32_t flags      - Flags
+
+ME Module Entry (80 bytes):
+  +0x00: uint32_t signature       - "$MOD" (0x244D4F44)
+  +0x04: uint32_t module_id       - Module ID
+  +0x08: uint32_t module_type     - Module type
+  +0x0C: uint32_t flags1          - Flags 1
+  +0x10: uint32_t flags2          - Flags 2
+  +0x14: uint32_t reserved        - Reserved
+  +0x18: uint32_t compressed_size - Compressed data size
+  +0x1C: uint32_t uncompressed_size - Size after decompression
+  +0x20: uint32_t load_address    - Memory load address
+  +0x24: uint32_t entry_point     - Entry point
+  +0x28: uint32_t hash[2]         - Module hash (64 bit)
+  +0x30: char module_name[16]     - Module name (ASCII)
+  +0x40: uint8_t padding[8]       - Padding
+
+Module data starts immediately after header (offset + 0x50).
+
+
+ALGORITHM
+=========
+
+1. FPT Search
+   - Scan image for "$FPT" signature
+   - Return partition table offset
+
+2. CODE Partition Search
+   - Read FPT entries (starting from offset + 0x20)
+   - Find partition named "CODE"
+   - Extract offset and size
+
+3. Manifest Search
+   - Scan CODE partition for "$MAN"
+   - Validate manifest structure
+
+4. Module Search
+   - Scan entire image for "$MOD"
+   - Validate each entry:
+     * module_type <= 0x100
+     * compressed_size <= 0x1000000 (16 MB)
+   - Collect all valid modules
+
+5. Module Extraction
+   - Determine type (compressed/uncompressed)
+   - If compressed: LZMA decompression
+   - If uncompressed: direct copy
+   - Write to out/<module_name>.bin
+
+
+LZMA FORMAT IN ME1
+==================
+
+Intel ME v1 uses modified LZMA format:
+
+Header (5 bytes):
+  +0x00: uint8_t props       - LZMA properties
+  +0x01: uint32_t dict_size  - Dictionary size
+
+Data:
+  +0x05: compressed_data     - Compressed data
+
+For decompression, m1u creates standard LZMA header:
+  +0x00: props (1 byte)
+  +0x01: dict_size (4 bytes)
+  +0x05: uncompressed_size (8 bytes) - added by utility
+  +0x0D: compressed_data
+
+This allows using standard LZMA decoder from liblzma.
+
+
+USAGE
+=====
+
+Compilation:
+  make
+
+Extract all modules:
+  ./m1u me1x200.bin
+
+Extract specific module:
+  ./m1u me1x200.bin PRELOADER
+  ./m1u me1x200.bin BRINGUP
+  ./m1u me1x200.bin KernelPriv
+
+Output:
+  out/<module_name>.bin
+
+
+KNOWN ME1 MODULES
+=================
+
+Successfully extracted 18 modules from me1x200.bin firmware:
+
+System modules:
+  PRELOADER      - Primary bootloader (4288 bytes)
+  BRINGUP        - System initialization (8148 bytes)
+  KernelPriv     - Privileged kernel
+  KernelNonPriv  - Non-privileged kernel
+
+Overlay modules:
+  BUPET_OVL      - BUP Event Table
+  BUPMSEQ_OVL    - BUP Message Sequence
+  BUCLS_OVL      - BUP CLS
+  EFFS_IOVL      - EFFS I/O
+  EFFS_OPOVL     - EFFS Operations
+  MOFFM0_OVL     - MOFF M0
+  SUPPORT_OVL    - Support functions
+  PKTPMINIT_OVL  - Packet TPM Init
+  ALIASCHECK_OVL - Alias Check
+
+Service modules:
+  CLS            - Configuration Lifecycle Service
+  PKTPM          - Packet TPM
+  PMHWSEQ        - PM Hardware Sequencer
+  TDT            - Theft Deterrent Technology
+  TPM            - Trusted Platform Module
+  UPEK           - UPEK fingerprint support
+
+
+DEBUG INFORMATION
+=================
+
+During extraction, m1u outputs:
+
+1. Module search:
+   DEBUG: $MOD #N at 0xOFFSET: type=0xTYPE name='NAME' comp=SIZE uncomp=SIZE
+
+2. Found module:
+  DEBUG: MATCH FOUND!
+
+3. Decompression:
+  DEBUG: First 32 bytes of compressed data:
+   [hex dump of first 32 bytes]
+
+4. Result:
+   DEBUG INFO: Load Addr: 0xADDRESS | Entry: 0xENTRY
+   -> 'out/NAME.bin' (SIZE bytes, compressed/uncompressed)
+
+
+VALIDATION
+==========
+
+$MOD entry validity criteria:
+- Signature == 0x244D4F44 ("$MOD")
+- module_type <= 0x100
+- compressed_size <= 0x1000000 (16 MB)
+- compressed_size > 0
+- uncompressed_size > 0
+
+Invalid entries are ignored.
+
+
+EXTRACTION STATISTICS
+=====================
+
+From me1x200.bin:
+- Found: 18 modules
+- Extracted: 18 modules (100% success rate)
+- Compressed: ~15 modules
+- Uncompressed: ~3 modules
+
+All modules successfully decompressed and saved to out/.
+
+
+TECHNICAL DETAILS
+=================
+
+Compiler: Zig CC
+  Advantages:
+  - Cross-compilation
+  - Modern toolchain
+  - C compatibility
+
+Dependencies:
+  liblzma - LZMA decompression
+  Installation: apt install liblzma-dev
+
+Optimization: -O2
+  Balance between speed and size
+
+Structure alignment: #pragma pack(push, 1)
+  Critical for correct binary structure reading
+
+
+KNOWN LIMITATIONS
+=================
+
+1. ME v1 support only
+   Other version structures differ
+
+2. LZMA decompression only
+   Other algorithms not supported
+
+3. Linear signature search
+   May be slow on large images
+
+4. No hash verification
+   Module integrity not verified
+
+5. Fixed name buffer size
+   Module names limited to 16 characters
+
+
+PROJECT USAGE
+=============
+
+m1u is used for:
+1. Extracting modules for analysis in Rizin/Ghidra
+2. Obtaining decompressed code
+3. Studying firmware structure
+4. Source code reconstruction
+
+Extracted modules are analyzed in:
+- reverse/me1/modules/*.bin
+- Documentation: reverse/me1/notes/*.txt
+- Reconstruction: code/reconstructed/*.c
+
+
+OUTPUT EXAMPLES
+===============
+
+Extract all modules:
+  $ ./m1u me1x200.bin
+  Found 18 modules. Extracting all...
+  
+  [1/18] Extracting 'PRELOADER'...
+     DEBUG INFO: Load Addr: 0x01000000 | Entry: 0x01012210
+    -> 'out/PRELOADER.bin' (4288 bytes, decompressed)
+  
+  [2/18] Extracting 'BRINGUP'...
+     DEBUG INFO: Load Addr: 0x00100000 | Entry: 0x00100000
+    -> 'out/BRINGUP.bin' (8148 bytes, decompressed)
+  
+  ...
+  
+  Extraction complete: 18/18 modules extracted successfully
+
+Extract specific module:
+  $ ./m1u me1x200.bin KernelPriv
+  DEBUG: $MOD #0 at 0x1234: type=0x01 name='KernelPriv' comp=12345 uncomp=23456
+  DEBUG: MATCH FOUND!
+  DEBUG: First 32 bytes of compressed data:
+  5d 00 00 80 00 ff ff ff ff ff ff ff ff 00 ...
+  -> 'out/KernelPriv.bin' (23456 bytes, decompressed)
+
+
+FUTURE DEVELOPMENT
+==================
+
+Planned improvements:
+- Module hash verification
+- Support for other ME versions
+- Metadata export to JSON
+- Graphical interface
+- Automatic module analysis
+
+
+REFERENCES
+==========
+
+Project: https://github.com/zarazaex/e
+Documentation: reverse/me1/notes/
+Reconstruction: code/reconstructed/
+Contact: zarazaex@tuta.io
+
+
+ACKNOWLEDGMENTS
+===============
+
+- Reverse engineering community
+- Rizin developers
+- liblzma authors
+- Zig team
+
+
+LICENSE
+=======
+BSD-3-Clause License
+Copyright (c) zarazaex
+
+See LICENSE in project root.
