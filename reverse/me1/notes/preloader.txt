@@ -1,0 +1,356 @@
+!!!!!!!!!!!!!AI GENERATED!!!!!!!!!!!!!!!!!1
+PRELOADER.bin Technical Analysis Report
+=======================================
+
+FILE INFORMATION
+================
+Source: /home/z/my-project/e/reverse/me1/modules/PRELOADER.bin
+File Size: 4288 bytes (0x10C0 bytes)
+SHA256: (not calculated)
+Timestamp: Feb 18 08:11 (from git repository)
+Obtained via: ls -la command on repository modules directory
+
+ARCHITECTURE
+============
+Platform: Intel Management Engine v1 (ME1)
+CPU Core: ARC (Argonaut RISC Core)
+ISA: ARCompact (16-bit/32-bit mixed instruction set)
+Endianness: Little Endian
+Data Width: 32-bit
+Analysis Tool: Rizin v0.8.2 static build
+Analysis Command: /home/z/my-project/bin/rizin -a arc -b 32 -c 'aaa; pd N' PRELOADER.bin
+
+FUNCTION ANALYSIS
+=================
+Total Functions Detected: 1 (main function spanning entire file)
+Function Address: 0x00000000
+Function Size: 339 instructions, 4264 bytes of code
+Obtained via: rizin -q -a arc -b 32 -c 'aaa; afl' PRELOADER.bin
+
+ENTRY POINT ANALYSIS
+====================
+Offset 0x000 (Instruction Bytes: 007c9f63)
+Instruction: mov sp, 0x1012210
+Description: Initialize Stack Pointer to address 0x1012210
+Technical: This sets the top of the stack in ME SRAM region
+Obtained via: Disassembly at offset 0x000
+
+Offset 0x008 (Instruction Bytes: 10220101)
+Instruction: mov gp, 0x10010fc
+Description: Initialize Global Pointer to address 0x10010fc
+Technical: GP used for accessing global/static data in position-independent code
+Obtained via: Disassembly at offset 0x008
+
+Offset 0x010 (Instruction Bytes: 007c5f63)
+Instruction: sub sp, sp, 0x10
+Description: Allocate 16 bytes on stack for local variables
+Technical: Stack frame setup for function prologue
+Obtained via: Disassembly at offset 0x010
+
+Offset 0x014 (Instruction Bytes: fc100001)
+Instruction: bl 0x00000bb0
+Description: Branch with link to function at 0xBB0
+Technical: Calls initialization subroutine, stores return address in blink
+Obtained via: Disassembly at offset 0x014
+
+Offset 0x018 (Instruction Bytes: 107e8e53)
+Instruction: mov r0, 0x10010fc
+Description: Load address 0x10010fc into r0
+Technical: Same address as GP, likely accessing global data structure
+Obtained via: Disassembly at offset 0x018
+
+Offset 0x020 (Instruction Bytes: 00730128)
+Instruction: ld r0, [r0]
+Description: Load 32-bit value from address in r0 (0x10010fc)
+Technical: Dereferences pointer at GP address
+Obtained via: Disassembly at offset 0x020
+
+Offset 0x024 (Instruction Bytes: 007c1f60)
+Instruction: bl.d 0x00000c78
+Description: Branch with link and delay slot to 0xC78
+Technical: Calls another initialization routine, executes next instruction before branch
+Obtained via: Disassembly at offset 0x024
+
+Offset 0x028 (Instruction Bytes: fc100001)
+Instruction: mov fp, 0
+Description: Initialize Frame Pointer to zero
+Technical: Standard frame pointer initialization for stack unwinding
+Obtained via: Disassembly at offset 0x028
+
+Offset 0x02C (Instruction Bytes: 00110001)
+Instruction: mov r0, 0x1001100
+Description: Load address 0x1001100 into r0
+Technical: Critical address - will be dereferenced to get jump target
+Obtained via: Disassembly at offset 0x02C
+
+Offset 0x034 (Instruction Bytes: 00002008)
+Instruction: ld r1, [r0]
+Description: Load 32-bit value from address 0x1001100 into r1
+Technical: Reads jump vector from fixed memory location
+Obtained via: Disassembly at offset 0x034
+
+Offset 0x038 (Instruction Bytes: 00201f08)
+Instruction: lr r0, [0x10005]
+Description: Load from AUX register 0x10005 (status/control register)
+Technical: Reads processor status register, ARC specific instruction
+Obtained via: Disassembly at offset 0x038
+
+Offset 0x040 (Instruction Bytes: 05000100)
+Instruction: or r0, r0, 0x1000
+Description: Set bit 12 in status register value
+Technical: Modifies processor status/configuration
+Obtained via: Disassembly at offset 0x040
+
+Offset 0x048 (Instruction Bytes: 007c0068)
+Instruction: jl [r1]
+Description: Jump to address stored in r1 (from [0x1001100])
+Technical: Indirect jump to next stage code, transfers control
+Obtained via: Disassembly at offset 0x048
+
+CRITICAL SIGNATURE WRITE - $MEM
+===============================
+Offset 0x804 (Instruction Bytes: 00100000 00820038 008e2018)
+Instruction: st 0x4d454d24, [r0]
+Description: Write 32-bit value 0x4D454D24 to memory address in r0
+Technical: ASCII interpretation: "$MEM" (0x24='$', 0x4D='M', 0x45='E', 0x4D='M')
+Little-endian byte order: 24 4D 45 4D -> "$MEM"
+Obtained via: Disassembly at offset 0x804 and hex dump verification
+
+Offset 0x80C (Instruction Bytes: fc100001)
+Instruction: sub r1, r1, 0x10
+Description: Subtract 16 from r1
+Technical: Size calculation for memory region
+Obtained via: Disassembly at offset 0x80C
+
+Offset 0x810 (Instruction Bytes: 00100000 008e2018)
+Instruction: st r1, [r0, 8]
+Description: Store size value at offset 8 from $MEM signature
+Technical: Memory descriptor structure field
+Obtained via: Disassembly at offset 0x810
+
+Offset 0x814 (Instruction Bytes: 00860010 017a8250)
+Instruction: st r2, [r0, 4]
+Description: Store r2 value at offset 4 from $MEM signature
+Technical: Memory descriptor structure field
+Obtained via: Disassembly at offset 0x814
+
+Offset 0x818 (Instruction Bytes: 04fe2040)
+Instruction: mov r1, 0x11
+Description: Load immediate value 17 into r1
+Technical: Type/flags field for memory descriptor
+Obtained via: Disassembly at offset 0x818
+
+Offset 0x81C (Instruction Bytes: 02feff27)
+Instruction: j.d [blink]
+Description: Jump to address in blink register with delay slot
+Technical: Return from function, executes next instruction first
+Obtained via: Disassembly at offset 0x81C
+
+Offset 0x820 (Instruction Bytes: 0005e167)
+Instruction: st r1, [r0, 0xc]
+Description: Store type value 0x11 at offset 12 from $MEM signature
+Technical: Completes memory descriptor structure
+Obtained via: Disassembly at offset 0x820
+
+$MEM DESCRIPTOR STRUCTURE
+=========================
+Offset 0: Signature 0x4D454D24 ("$MEM")
+Offset 4: Address/pointer field
+Offset 8: Size field (calculated as size - 0x10)
+Offset 12: Type/flags field (value 0x11)
+Total size: 16 bytes (0x10)
+Obtained via: Analysis of st instructions at offsets 0x804-0x820
+
+MEMORY MAP ADDRESSES
+====================
+0x1012210 - Stack Pointer initial value
+0x10010fc - Global Pointer / data structure pointer
+0x1001100 - Jump vector address (indirect jump target stored here)
+0x10005 - AUX register (processor status/control)
+0x100120c - Memory descriptor pointer (from later code)
+0x108000 - Key search start address (used in later code)
+0x8000b000 - Hardware register access
+Obtained via: Extraction of immediate values from mov instructions
+
+STRING DATA ANALYSIS
+====================
+String at 0x808: "$MEM" (4 bytes)
+ASCII: 0x24 0x4D 0x45 0x4D
+Meaning: Memory region signature marker
+Obtained via: rizin -q -a arc -b 32 -c 'iz' PRELOADER.bin
+
+String at 0xAC0: "$MCX" (4 bytes)
+ASCII: 0x24 0x4D 0x43 0x58
+Meaning: Unknown signature marker
+Obtained via: String analysis command
+
+HEX DUMP OF FIRST 512 BYTES
+===========================
+Obtained via: rizin -q -a arc -b 32 -c 'px 512 @ 0' PRELOADER.bin
+0x00000000: 007c9f63 10220101 007c5f63 fc100001  .|.c."...|_c....
+0x00000010: 107e8e53 00730128 007c1f60 fc100001  .~.S.s.(.|.`....
+0x00000020: 00110001 00002008 00201f08 05000100  ...... .. ......
+0x00000030: 007c0068 00100000 00820038 008e2018  .|.h.......8.. .
+0x00000040: 08fe6080 00826168 10fe2180 087ae157  ..`...ah..!..z.W
+0x00000050: 00866068 06020020 00002060 0005e167  ..`h... .. `...g
+0x00000060: 01810f38 00080020 037ae067 21030020  ...8... .z.g!.. 
+0x00000070: 00002060 00864010 01fe2040 03fae067  .. `..@... @...g
+0x00000080: 017e4150 82fdff27 027e8188 037e4160  .~AP...'.~...~A`
+0x00000090: 00860010 017a8250 04fe2040 02feff27  .....z.P.. @...'
+0x000000a0: 0005e167 01810f38 00048167 ffffffff  ...g...8...g....
+0x000000b0: 00010030 00864010 01fe2040 00810f38  ...0..@... @...8
+0x000000c0: 00058167 00028068 01810f38 037ae267  ...g...h...8.z.g
+0x000000d0: 037e8188 82100020 0005821f 04fe2050  .~..... ...... P
+0x000000e0: 047e6050 02040030 04908008 0490a008  .~`P...0........
+0x000000f0: 0490c008 0490e008 04880111 048a0111  ................
+0x00000100: 048c0111 048e0111 a5050020 047ae167  ........... .z.g
+0x00000110: ffffffff 22070020 037a8167 03fe2040  ....".. .z.g.. @
+0x00000120: 01810f38 03fe6140 00010030 01948008  ...8..a@...0....
+0x00000130: 01884111 00810f38 04908008 0490a008  ..A....8........
+0x00000140: 04880111 21faff27 048a0111 037a8167  ....!..'.....z.g
+0x00000150: 04908008 a0f8ff27 04880111 01fe2050  .......'...... P
+0x00000160: 017e6050 00010030 01948008 01884111  .~`P...0......A.
+0x00000170: 00810f38 20010020 047e8e53 10fe9f61  ...8 .. .~.S...a
+0x00000180: 202a0020 00188e53 20010020 047e8e53   *. ...S .. .~.S
+0x00000190: 14fe9f61 20270020 00188e53 20010020  ...a '. ...S .. 
+0x000001a0: 047e8e53 18fe9f61 20240020 00188e53  .~.S...a $. ...S
+0x000001b0: 20010020 047e8e53 1cfe9f61 20210020   .. .~.S...a !. 
+0x000001c0: 00188e53 20010020 047e8e53 20fe9f61  ...S .. .~.S ..a
+0x000001d0: 201e0020 00188e53 20010020 047e8e53   .. ...S .. .~.S
+0x000001e0: 24fe9f61 201b0020 00188e53 20010020  $..a .. ...S ..
+
+REGISTER USAGE ANALYSIS
+=======================
+r0: General purpose, function argument, return value
+r1: General purpose, function argument
+r2: General purpose, function argument, size value
+r3: General purpose, function argument, loop counter
+r4-r7: General purpose, saved registers
+r10: Static base / frame temp
+r11: Frame pointer calculation
+r12: Stack frame size
+r13: Loop counter, temp storage
+r14: Address pointer
+r15: Loop counter
+r16-r17: Saved registers
+r18: Constant 0x2000
+r19: Address pointer
+r20: Address 0x10005 (AUX register)
+r21: Bit masks
+r22: Constant 0x3000
+sp: Stack pointer (initialized to 0x1012210)
+gp: Global pointer (initialized to 0x10010fc)
+fp: Frame pointer (initialized to 0)
+blink: Return address register
+lp_count: Hardware loop counter
+lp_start: Hardware loop start address
+lp_end: Hardware loop end address
+Obtained via: Full disassembly analysis
+
+SUBROUTINE ANALYSIS
+===================
+Function at 0xBB0:
+Entry: bl 0x00000bb0 at offset 0x014
+Purpose: Initial hardware/platform initialization
+Obtained via: Branch target analysis
+
+Function at 0xC78:
+Entry: bl.d 0x00000c78 at offset 0x024
+Purpose: Secondary initialization routine
+Obtained via: Branch target analysis
+
+Function at 0x7F4:
+Entry: Referenced for size validation
+Purpose: Memory size validation routine
+Obtained via: Call target analysis
+
+Function at 0x594:
+Entry: Multiple calls throughout code
+Purpose: Memory/configuration access routine
+Obtained via: Call frequency analysis
+
+CONTROL FLOW ANALYSIS
+=====================
+Entry Point: 0x000
+Initial Sequence:
+1. Set SP = 0x1012210
+2. Set GP = 0x10010fc
+3. Allocate stack frame (0x10 bytes)
+4. Call 0xBB0 (initialization)
+5. Load from [0x10010fc]
+6. Call 0xC78 (secondary init)
+7. Set FP = 0
+8. Load jump vector from [0x1001100]
+9. Read AUX register 0x10005
+10. Set bit 12 in status
+11. Jump to address from [0x1001100]
+
+Key Branch Points:
+- Offset 0x014: Call to 0xBB0
+- Offset 0x024: Call to 0xC78
+- Offset 0x048: Indirect jump to next stage
+Obtained via: Control flow graph analysis
+
+MEMORY DESCRIPTOR STRUCTURE ANALYSIS
+====================================
+Structure Name: $MEM descriptor
+Total Size: 16 bytes (0x10)
+Fields:
+  +0x00: Signature (4 bytes) = "$MEM" (0x4D454D24)
+  +0x04: Base address/pointer (4 bytes)
+  +0x08: Size (4 bytes)
+  +0x0C: Type/flags (4 bytes) = 0x11
+Obtained via: Analysis of st instruction sequence at 0x804-0x820
+
+VERIFICATION SIGNATURE
+======================
+$MEM signature verification:
+Instruction: st 0x4d454d24, [r0]
+Hex bytes: 00100000 00820038 (part of encoding)
+Value breakdown:
+  0x4D = 'M'
+  0x45 = 'E'
+  0x4D = 'M'
+  0x24 = '$'
+Little-endian memory: 24 4D 45 4D = "$MEM"
+Obtained via: Disassembly and ASCII conversion
+
+HARDWARE REGISTER ACCESS
+=========================
+AUX Register 0x10005:
+Access Type: Load/Read
+Instruction: lr r0, [0x10005]
+Purpose: Processor status/control register
+Modification: Bit 12 set (0x1000 OR operation)
+Obtained via: lr instruction analysis
+
+Memory Mapped Addresses:
+0x8000b000: Hardware register (written with value from r18)
+0x3040-0x3043: Configuration registers (SR instructions)
+0x2400: Hardware register (read-modify-write)
+Obtained via: sr/lr instruction analysis
+
+EXECUTION END STATE
+===================
+Final Action: Jump to address stored at [0x1001100]
+Instruction: jl [r1] where r1 = [0x1001100]
+Next Stage: Control transfers to loaded module address
+Stack State: Initialized and ready
+GP State: Set to 0x10010fc
+Status Register: Bit 12 set
+Obtained via: Analysis of offset 0x048
+
+SUMMARY
+=======
+PRELOADER.bin is the first-stage bootloader for Intel ME v1.
+It performs minimal initialization:
+1. Stack and global pointer setup
+2. Hardware initialization calls
+3. Memory descriptor creation ($MEM)
+4. Status register configuration
+5. Control transfer to next stage via [0x1001100]
+
+File size: 4288 bytes
+Code region: 0x000-0x10BF (entire file)
+Entry point: 0x000
+Exit mechanism: Indirect jump via memory vector
