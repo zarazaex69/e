@@ -1,0 +1,432 @@
+CODE RECONSTRUCTION DIRECTORY
+=============================
+
+This directory contains reconstructed C implementations of Intel ME v1 modules
+based on static analysis of disassembled binary code.
+
+Author: zarazaex
+License: BSD-3-Clause
+Target: Intel Management Engine v1 (ARC Architecture)
+
+
+PURPOSE
+=======
+
+The reconstructed code serves multiple purposes:
+
+1. Documentation
+   - Executable documentation of ME1 behavior
+   - Reference implementation for researchers
+   - Educational resource for firmware analysis
+
+2. Verification
+   - Cross-reference with disassembly analysis
+   - Validate understanding of binary behavior
+   - Prove correctness of reverse engineering
+
+3. Research
+   - Study ME1 architecture and design patterns
+   - Understand security mechanisms
+   - Identify vulnerabilities and attack surfaces
+
+4. Preservation
+   - Preserve knowledge of obsolete architecture
+   - Document undocumented firmware behavior
+   - Create maintainable reference code
+
+
+METHODOLOGY
+===========
+
+Reconstruction Process:
+
+1. Binary Extraction
+   - Extract modules using m1u utility
+   - Obtain raw binary code from firmware
+
+2. Disassembly Analysis
+   - Disassemble with Rizin/Ghidra
+   - Identify instruction sequences
+   - Map control flow and data flow
+
+3. Pattern Recognition
+   - Identify function boundaries
+   - Recognize standard algorithms (memcpy, memset, etc.)
+   - Detect data structures and their layouts
+
+4. Address Extraction
+   - Extract proven memory addresses from mov/ld/st instructions
+   - Document hardware register accesses (lr/sr instructions)
+   - Map memory-mapped I/O regions
+
+5. Structure Reconstruction
+   - Infer structure layouts from offset patterns
+   - Validate with multiple access points
+   - Document proven offsets and sizes
+
+6. Algorithm Reconstruction
+   - Translate assembly to C logic
+   - Preserve exact behavior and side effects
+   - Maintain proven constants and magic values
+
+7. Documentation
+   - Comment proven facts with disassembly references
+   - Mark uncertain areas clearly
+   - Cross-reference with analysis notes
+
+
+RECONSTRUCTION PRINCIPLES
+=========================
+
+1. Proven Facts Only
+   - Every constant, address, and offset is extracted from disassembly
+   - No guessing or assumptions
+   - All values marked as "PROVEN" with references
+
+2. Exact Behavior
+   - Preserve instruction-level semantics
+   - Maintain side effects and ordering
+   - Keep hardware access patterns identical
+
+3. Minimal Interpretation
+   - Translate directly from assembly
+   - Avoid high-level abstractions
+   - Keep C code close to assembly structure
+
+4. Complete Documentation
+   - Every section references disassembly location
+   - Proven values documented with instruction examples
+   - Uncertain areas marked with comments
+
+5. Verifiable
+   - Can be cross-checked against disassembly
+   - Addresses and constants match binary exactly
+   - Structure offsets proven by multiple accesses
+
+
+CURRENT MODULES
+===============
+
+preloader_logic.c
+-----------------
+Size: 4288 bytes (original binary)
+Entry: 0x01000000 (Flash) -> 0x00100000 (SRAM handoff)
+Status: Complete reconstruction
+
+Purpose:
+  - First-stage bootloader
+  - Initialize SRAM controller
+  - Decompress BRINGUP module
+  - Create $MEM descriptor
+  - Transfer control to BRINGUP
+
+Key Functions:
+  _start()                    - Entry point (0x000)
+  init_memory_controller()    - SRAM initialization (0x0BB0)
+  unpack_next_stage()         - Decompressor (0x0C78)
+  decompress_lz()             - LZMA decompression (0x0654)
+
+Proven Constants:
+  SP_VAL: 0x01012210          - Stack pointer
+  GP_VAL: 0x010010FC          - Global pointer
+  TARGET_SRAM_ADDR: 0x00100000 - BRINGUP load address
+  MAGIC_SIGNATURE: 0x4D454D24  - "$MEM" signature
+  AUX_SRAM_CTRL_BASE: 0x2C00   - Memory controller base
+  AUX_MMU_CTRL: 0x10005        - MMU control register
+
+Documentation: reverse/me1/notes/preloader.txt
+
+
+bringup_logic.c
+---------------
+Size: 8148 bytes (original binary)
+Entry: 0x00100000 (SRAM)
+Status: Complete reconstruction
+
+Purpose:
+  - Second-stage initialization
+  - Security key processing (CKEY)
+  - Hardware configuration
+  - Descriptor creation ($BUP, $HEC)
+  - Overlay module loading
+  - Main event loop
+
+Key Functions:
+  bringup_entry()             - Entry point (0x320)
+  ckey_search_and_process()   - CKEY search (0x504)
+  hardware_init()             - Hardware setup (0x5F8)
+  allocate_descriptor()       - Memory allocation (0x1160)
+  write_bup_descriptor()      - $BUP creation (0x13CC)
+  write_hec_descriptor()      - $HEC creation (0x13DC)
+  overlay_init()              - Overlay loading (0x1440)
+  main_loop()                 - Event loop (0x1800)
+  process_list_entry()        - List processing
+  module_handoff()            - Control transfer (0x1712)
+
+Proven Constants:
+  ADDR_PRIMARY_STRUCT: 0x00102028  - Primary data structure
+  CKEY_SEARCH_START: 0x00108000    - CKEY search start
+  CKEY_SIGNATURE: 0x59454B43       - "CKEY" signature
+  CKEY_ENTRY_COUNT: 4              - Number of entries
+  SIG_BUP: 0x50554224              - "$BUP" signature
+  SIG_HEC: 0x43454824              - "$HEC" signature
+  ALLOC_SIZE_BUP: 0xEC (236 bytes) - $BUP size
+  ALLOC_SIZE_HEC: 0x5C (92 bytes)  - $HEC size
+  STACK_FRAME_SIZE: 0xE8 (232 bytes) - Stack frame
+  MODULE_CALL_ARG: 11              - Handoff argument
+
+Data Structures:
+  primary_struct_t            - Primary structure at 0x102028
+  func_read_table_t           - Read/verify functions
+  func_proc_table_t           - Process/dispatch functions
+  list_entry_t                - Linked list (size 0x0C)
+  module_struct_t             - Module descriptor
+  bup_descriptor_t            - $BUP descriptor (236 bytes)
+  hec_descriptor_t            - $HEC descriptor (92 bytes)
+
+Documentation: reverse/me1/notes/bringup.txt
+
+
+ARCHITECTURE NOTES
+==================
+
+Target CPU: ARC (ARCompact ISA)
+- 16/32-bit mixed instruction set
+- Harvard architecture (separate I/D caches)
+- Auxiliary register space for hardware access
+- Hardware loop support (lp/lpnz instructions)
+
+Memory Layout:
+  0x01000000 - Flash base (PRELOADER)
+  0x00100000 - SRAM base (BRINGUP)
+  0x00102000 - Data structures
+  0x00108000 - CKEY storage
+
+Hardware Registers:
+  AUX 0x10005  - Processor status/control
+  AUX 0x2C00   - SRAM controller base
+  AUX 0x7F-0x7D - Event polling registers
+  0x80009200   - Hardware control
+  0x8004       - Hardware config
+  0x8010       - Hardware config
+
+Special Instructions:
+  lr  - Load from auxiliary register
+  sr  - Store to auxiliary register
+  flag - Set processor flag
+  lp  - Hardware loop
+
+
+CODE STRUCTURE
+==============
+
+Each reconstructed file follows this structure:
+
+1. Header Comment
+   - Module description
+   - Target hardware
+   - Entry point information
+   - Summary of operations
+
+2. Includes
+   - Standard C headers only
+   - No external dependencies (except inline asm)
+
+3. Proven Memory Addresses
+   - All addresses from disassembly
+   - Documented with instruction examples
+
+4. Proven Signatures
+   - Magic values and constants
+   - Little-endian format documented
+
+5. Proven Hardware Values
+   - Register addresses
+   - Bitmasks and control values
+   - Configuration constants
+
+6. Proven Allocation Sizes
+   - Memory allocation parameters
+   - Buffer sizes
+   - Structure sizes
+
+7. Proven Offsets
+   - Structure field offsets
+   - Array indices
+   - Pointer arithmetic
+
+8. Data Structures
+   - Reconstructed from access patterns
+   - Proven offsets documented
+   - Unknown areas marked as reserved
+
+9. Helper Functions
+   - Assembly wrappers (aux_read, aux_write)
+   - Utility functions (memset, memcpy)
+
+10. Main Functions
+    - Reconstructed logic
+    - Proven sequences documented
+    - Cross-references to disassembly
+
+11. Proven Facts Summary
+    - Complete list of proven values
+    - Quick reference section
+
+
+VERIFICATION
+============
+
+Each reconstructed module can be verified against:
+
+1. Disassembly
+   - Compare instruction sequences
+   - Verify addresses and constants
+   - Check control flow
+
+2. Documentation
+   - Cross-reference with notes/*.txt
+   - Validate against analysis
+   - Check proven facts
+
+3. Binary Behavior
+   - Compare memory access patterns
+   - Verify hardware register operations
+   - Check side effects
+
+Verification Checklist:
+  See reverse/me1/notes/reconstruction_map.txt
+
+
+LIMITATIONS
+===========
+
+1. Incomplete Function Pointers
+   - Some function pointers not fully resolved
+   - Marked with extern declarations
+   - Require dynamic analysis for completion
+
+2. Unknown Structure Fields
+   - Some structure fields marked as reserved
+   - Size known, purpose unknown
+   - Require runtime analysis
+
+3. Decompression Algorithm
+   - LZMA decompression not fully reconstructed
+   - Complex algorithm requires separate analysis
+   - Placeholder implementation provided
+
+4. Hardware Semantics
+   - Some hardware register purposes unknown
+   - Documented as-is from disassembly
+   - Require hardware documentation
+
+5. Overlay Loading
+   - Overlay module loading mechanism incomplete
+   - String table documented
+   - Loading logic requires further analysis
+
+
+COMPILATION NOTES
+=================
+
+These files are NOT intended to be compiled as-is. They serve as:
+- Documentation of binary behavior
+- Reference for researchers
+- Verification against disassembly
+
+To compile (for reference only):
+  - Target: ARC architecture
+  - Compiler: ARC GCC or compatible
+  - Flags: -march=arc700 -mno-sdata
+  - Linker: Custom linker script required
+
+Missing for compilation:
+  - Complete runtime environment
+  - Hardware abstraction layer
+  - External function implementations
+  - Proper memory layout
+
+
+CROSS-REFERENCES
+================
+
+Documentation:
+  reverse/me1/notes/preloader.txt       - PRELOADER analysis
+  reverse/me1/notes/bringup.txt         - BRINGUP analysis
+  reverse/me1/notes/architecture.txt    - CPU architecture
+  reverse/me1/notes/memory_map.txt      - Memory layout
+  reverse/me1/notes/data_structures.txt - Structure definitions
+  reverse/me1/notes/reconstruction_map.txt - Mapping guide
+
+Binary Modules:
+  reverse/me1/modules/PRELOADER.bin     - Original binary
+  reverse/me1/modules/BRINGUP.bin       - Original binary
+
+Tools:
+  code/m1u/m1u                          - Module extractor
+  code/analyze_bringup.r2               - Rizin analysis script
+
+
+FUTURE WORK
+===========
+
+Planned Reconstructions:
+  - KernelPriv.c      - Privileged kernel
+  - KernelNonPriv.c   - Non-privileged kernel
+  - CLS.c             - Configuration Lifecycle Service
+  - TPM.c             - Trusted Platform Module
+  - TDT.c             - Theft Deterrent Technology
+
+Improvements:
+  - Complete function pointer resolution
+  - Resolve unknown structure fields
+  - Reconstruct overlay loading mechanism
+  - Add runtime verification tests
+  - Create compilable versions
+
+
+CONTRIBUTING
+============
+
+When adding new reconstructions:
+
+1. Follow existing structure and style
+2. Document all proven facts with references
+3. Mark uncertain areas clearly
+4. Cross-reference with disassembly
+5. Update this info.txt
+6. Update reconstruction_map.txt
+
+Reconstruction Guidelines:
+  - Proven facts only, no guessing
+  - Exact behavior preservation
+  - Complete documentation
+  - Verifiable against binary
+
+
+CONTACT
+=======
+
+Project: https://github.com/zarazaex/e
+Author: zarazaex
+Email: zarazaex@tuta.io
+Telegram: @zarazaexe
+
+
+LICENSE
+=======
+
+BSD-3-Clause License
+Copyright (c) zarazaex
+
+See LICENSE in project root.
+
+
+ACKNOWLEDGMENTS
+===============
+
+- Rizin communities
+- ARC architecture documentation
+- Reverse engineering community
+- Open source firmware researchers
