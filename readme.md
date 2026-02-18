@@ -33,6 +33,8 @@ I aim to fully analyze the Intel Management Engine using r2, Rizin, and Ghidra. 
 **UPD:** я сделал патч в rizin... ( [see](https://github.com/rizinorg/rizin/pull/5922) ), чтобы пофиксить "???" ( [see](reverse/me1/doc/note/rizin_arc_unknown_instructions.txt) [see](reverse/me1/doc/note/rizin_arc_patch_summary.txt) [see](reverse/me1/doc/note/rizin_arc_patch.txt) ), тем самым я пофиксил ошибку с 1 огромной функцией ( [see](reverse/me1/doc/note/rizin_arc_function_analysis_fix.txt) ).
 
 **UPD:** проект начат с нуля и перезапущен, нацелен только на me 1.ss
+
+**UPD:** проект ушел с 2 плана на 3, и почти 4, ппродолжаю его развитие чисто ради статьи на хабр, пока что я застрял на BRINGUP, не от сложности, а от лени
  
 </details>
 <div align="center">
