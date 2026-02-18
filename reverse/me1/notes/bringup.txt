@@ -1,551 +1,172 @@
-!!!!!!!!!!!!!!!!!!!!!!!AI GENERATED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-BRINGUP.bin Technical Analysis Report
-=====================================
+BRINGUP.bin Detailed Analysis
+==============================
 
-FILE INFORMATION
-================
-Source: /home/z/my-project/e/reverse/me1/modules/BRINGUP.bin
-File Size: 8148 bytes (0x1FC4 bytes)
-SHA256: (not calculated)
-Timestamp: Feb 18 08:11 (from git repository)
-Obtained via: ls -la command on repository modules directory
+See modules_overview.txt for high-level overview
+See architecture.txt for CPU/ISA details
+See memory_map.txt for address layout
+See data_structures.txt for structure definitions
 
-ARCHITECTURE
-============
-Platform: Intel Management Engine v1 (ME1)
-CPU Core: ARC (Argonaut RISC Core)
-ISA: ARCompact (16-bit/32-bit mixed instruction set)
-Endianness: Little Endian
-Data Width: 32-bit
-Analysis Tool: Rizin v0.8.2 static build
-Analysis Command: /home/z/my-project/bin/rizin -a arc -b 32 -c 'aaa; pd N' BRINGUP.bin
+File: 8148 bytes (0x1FC4)
+Functions: 1 main function (548 instructions)
 
-FUNCTION ANALYSIS
-=================
-Total Functions Detected: 1 (main function spanning entire file)
-Function Address: 0x00000000
-Function Size: 548 instructions, 8140 bytes of code
-Obtained via: rizin -q -a arc -b 32 -c 'aaa; afl' BRINGUP.bin
+Code Sections
+=============
 
-STRING DATA SECTION
-===================
-Primary String Location: Offset 0x1F2C
-Obtained via: rizin -q -a arc -b 32 -c 'iz' BRINGUP.bin
+Utility Functions (0x000-0x140)
+  Purpose: Memory operations (memset, memcpy, memcmp)
+  Instructions: stb, ld.a, st.a, lp/lpnz (hardware loops)
 
-String Table Analysis:
-Offset 0x1F2C: "ME Security Key String Version 2" (31 bytes)
-ASCII: 4D 45 20 53 65 63 75 72 69 74 79 20 4B 65 79 20 53 74 72 69 6E 67 20 56 65 72 73 69 6F 6E 20 32
-Meaning: Security key version identifier string
-Obtained via: String extraction and hex dump at 0x1F2C
+Stack Frame Management (0x244-0x3AC)
+  Purpose: Function prologue/epilogue helpers
+  Frame Sizes: 0x10 to 0x48 (16 to 72 bytes)
+  Saved Registers: gp, r25-r13, fp
 
-OVERLAY MODULE NAMES TABLE
-==========================
-Location: Offset 0x1F4C - 0x1FCC
-Total Modules: 10 overlay modules
-Obtained via: Hex dump at 0x1F2C and string analysis
+CKEY Search and Processing (0x504-0x5F4)
+  Purpose: Find and validate security keys
+  Algorithm:
+    1. r14 = 0x108000 (search start)
+    2. Loop: ld [r14], compare with 0x59454B43 ("CKEY")
+    3. If not found: r14 += 4, continue
+    4. If found: process 4 CKEY entries
+  
+  Key Instructions:
+    0x518: mov r14, 0x108000
+    0x574: add r14, r14, 4
+    0x578: ld r0, [r14]
+    0x57C: sub.f 0, r0, 0x59454b43
+    0x584: bnz 0x574
+    0x58C: mov r13, 4
 
-Module Name List:
-1. Offset 0x1F4C: "BUPET_OVL" (9 bytes)
-   ASCII: 42 55 50 45 54 5F 4F 56 4C 00
-   Purpose: BRINGUP Ethernet Overlay module
-   
-2. Offset 0x1F58: "BUPMSEQ_OVL" (11 bytes)
-   ASCII: 42 55 50 4D 53 45 51 5F 4F 56 4C 00
-   Purpose: BRINGUP MSEQ (Message Sequence) Overlay
-   
-3. Offset 0x1F64: "BUCLS_OVL" (9 bytes)
-   ASCII: 42 55 43 4C 53 5F 4F 56 4C 00
-   Purpose: BRINGUP CLS (Classification?) Overlay
-   
-4. Offset 0x1F70: "EFFS_IOVL" (9 bytes)
-   ASCII: 45 46 46 53 5F 49 4F 56 4C 00
-   Purpose: Embedded Flash File System I/O Overlay
-   
-5. Offset 0x1F7C: "EFFS_OPOVL" (10 bytes)
-   ASCII: 45 46 46 53 5F 4F 50 4F 56 4C 00
-   Purpose: Embedded Flash File System Operations Overlay
-   
-6. Offset 0x1F88: "MOFFM0_OVL" (10 bytes)
-   ASCII: 4D 4F 46 46 4D 30 5F 4F 56 4C 00
-   Purpose: Mobile Offload Firmware Module 0 Overlay
-   
-7. Offset 0x1F94: "MOFFM1_OVL" (10 bytes)
-   ASCII: 4D 4F 46 46 4D 31 5F 4F 56 4C 00
-   Purpose: Mobile Offload Firmware Module 1 Overlay
-   
-8. Offset 0x1FA0: "SUPPORT_OVL" (11 bytes)
-   ASCII: 53 55 50 50 4F 52 54 5F 4F 56 4C 00
-   Purpose: Support Overlay module
-   
-9. Offset 0x1FAC: "PKTPMINIT_OVL" (13 bytes)
-   ASCII: 50 4B 54 50 4D 49 4E 49 54 5F 4F 56 4C 00
-   Purpose: Packet Processing Manager Init Overlay
-   
-10. Offset 0x1FBC: "ALIASCHECK_OVL" (14 bytes)
-    ASCII: 41 4C 49 41 53 43 48 45 43 4B 5F 4F 56 4C 00
-    Purpose: Alias Check Overlay module
+Hardware Initialization (0x5F8-0x734)
+  Purpose: Configure hardware registers and timers
+  Operations:
+    - Read/modify AUX register 0x10005
+    - Configure bits 12-15 (status register)
+    - Access hardware at 0x80009200
+    - Set processor mode bits
 
-HEX DUMP OF STRING/NAME SECTION
-===============================
-Obtained via: rizin -q -a arc -b 32 -c 'px 256 @ 0x1f2c' BRINGUP.bin
-0x00001f2c: 4d45 2053 6563 7572 6974 7920 4b65 7920  ME Security Key 
-0x00001f3c: 5374 7269 6e67 2056 6572 7369 6f6e 2032  String Version 2
-0x00001f4c: 4255 5045 545f 4f56 4c00 0000 4255 504d  BUPET_OVL...BUPM
-0x00001f5c: 5345 515f 4f56 4c00 4255 434c 535f 4f56  SEQ_OVL.BUCLS_OV
-0x00001f6c: 4c00 0000 4546 4653 5f49 4f56 4c00 0000  L...EFFS_IOVL...
-0x00001f7c: 4546 4653 5f4f 504f 564c 0000 4d4f 4646  EFFS_OPOVL..MOFF
-0x00001f8c: 4d30 5f4f 564c 0000 4d4f 4646 4d31 5f4f  M0_OVL..MOFFM1_O
-0x00001f9c: 564c 0000 5355 5050 4f52 545f 4f56 4c00  VL..SUPPORT_OVL.
-0x00001fac: 504b 5450 4d49 4e49 545f 4f56 4c00 0000  PKTPMINIT_OVL...
-0x00001fbc: 414c 4941 5343 4845 434b 5f4f 564c 0000  ALIASCHECK_OVL..
-0x00001fcc: 3c20 1000 0000 0000 ffff ffff ffff ffff  < ..............
-0x00001fdc: ffff ffff ffff ffff ffff ffff ffff ffff  ................
+Memory Allocation (0x738-0x920)
+  Purpose: Memory management and allocation
+  Key Addresses: 0x102C00 (buffer), 0x3200 (size)
+  Operations:
+    - Allocate from memory pool
+    - Initialize memory descriptors
+    - Set up $MEM structures
 
-CRITICAL SIGNATURE ANALYSIS - CKEY
-==================================
-Search Pattern: "CKEY" (0x434B4559)
-Search Address: 0x108000
-Obtained via: Analysis of comparison at offset 0x57C
+Signature Writing (0x1300-0x1440)
+  Purpose: Create $BUP and $HEC descriptors
+  
+  $BUP Creation (0x13CC):
+    st 0x50554224, [r0]  ; Write "$BUP"
+    st 1, [r0, 4]        ; Type = 1
+  
+  $HEC Creation (0x13DC):
+    st 0x43454824, [r0]  ; Write "$HEC"
+    st 1, [r0, 4]        ; Type = 1
+  
+  Hardware Config:
+    - Configure register 0x8004
+    - Configure register 0x8010
 
-Offset 0x518:
-Instruction: mov r14, 0x108000
-Description: Initialize search pointer to address 0x108000
-Technical: Starting address for CKEY signature search
-Obtained via: Disassembly at offset 0x518
+Overlay Loading (0x1440-0x1700)
+  Purpose: Load and initialize overlay modules
+  Count: 10 modules
+  Storage: r17 + offsets
+  Operations:
+    - Initialize module structures
+    - Set up function pointer tables
+    - Configure module entry points
 
-Offset 0x574:
-Instruction: add r14, r14, 4
-Description: Increment search pointer by 4 bytes
-Technical: Advances through memory searching for CKEY signature
-Obtained via: Disassembly at offset 0x574
+Final Initialization (0x1700-0x1FC4)
+  Purpose: Complete bringup sequence
+  Operations:
+    - Configure timer registers 0x3005, 0x3007
+    - Set up interrupt handlers
+    - Configure hardware at 0x7010, 0x7102
+    - Access string table at 0x1F2C
 
-Offset 0x578:
-Instruction: ld r0, [r14]
-Description: Load 32-bit value from address in r14
-Technical: Read candidate signature from memory
-Obtained via: Disassembly at offset 0x578
+String Table (0x1F2C-0x1FCC)
+=============================
 
-Offset 0x57C:
-Instruction: sub.f 0, r0, 0x59454b43
-Description: Compare loaded value with 0x59454B43 ("CKEY" in little-endian)
-Technical: 0x59454B43 = bytes 43 4B 45 59 = "CKEY" ASCII
-Little-endian interpretation: 43='C', 4B='K', 45='E', 59='Y'
-Obtained via: Disassembly at offset 0x57C
+Security String (0x1F2C):
+  "ME Security Key String Version 2" (31 bytes)
 
-Offset 0x584:
-Instruction: bnz 0x574
-Description: Branch if not zero to continue search
-Technical: Loop until CKEY signature found
-Obtained via: Disassembly at offset 0x584
+Overlay Module Names (0x1F4C-0x1FCC):
+  See data_structures.txt for complete list
 
-Offset 0x58C:
-Instruction: mov r13, 4
-Description: Set iteration counter to 4
-Technical: Process 4 CKEY entries after finding signature
-Obtained via: Disassembly at offset 0x58C
-
-CKEY Signature Verification:
-Value: 0x59454B43
-Byte breakdown:
-  0x43 = 'C'
-  0x4B = 'K'
-  0x45 = 'E'
-  0x59 = 'Y'
-Little-endian memory: 43 4B 45 59 = "CKEY"
-Obtained via: Immediate value extraction and ASCII conversion
-
-CRITICAL SIGNATURE WRITES - $BUP AND $HEC
-=========================================
-$BUP Signature:
-Offset 0x13CC:
-Instruction: st 0x50554224, [r0]
-Description: Write signature 0x50554224 to memory
-Technical: ASCII interpretation "$BUP"
-  0x50 = 'P'
-  0x55 = 'U'
-  0x42 = 'B'
-  0x24 = '$'
-Little-endian: 24 42 55 50 = "$BUP" (reversed for display)
-Obtained via: Disassembly at offset 0x13CC
-
-$HEC Signature:
-Offset 0x13DC:
-Instruction: st 0x43454824, [r0]
-Description: Write signature 0x43454824 to memory
-Technical: ASCII interpretation "$HEC"
-  0x43 = 'C'
-  0x45 = 'E'
-  0x48 = 'H'
-  0x24 = '$'
-Little-endian: 24 48 45 43 = "$HEC" (reversed for display)
-Obtained via: Disassembly at offset 0x13DC
-
-$BUP Descriptor Structure:
-Offset 0: Signature = "$BUP" (0x50554224)
-Offset 4: Type/flags = 1
-Obtained via: Analysis of st instruction sequence
-
-$HEC Descriptor Structure:
-Offset 0: Signature = "$HEC" (0x43454824)
-Offset 4: Type/flags = 1
-Obtained via: Analysis of st instruction sequence
-
-ADDITIONAL SIGNATURES FOUND
-===========================
-$MCX Signature:
-Location: Offset 0xAC0
-Value: 0x244D4358
-ASCII: "$MCX"
-Obtained via: String analysis command
-
-$ONS Signature:
-Location: Offset 0xE74
-Value: 0x4F4E5324
-ASCII: "$ONS"
-Obtained via: Disassembly at offset 0xE74
-
-$MCR Signature:
-Location: Offset 0xABC
-Value: 0x58434D24
-ASCII: "$MCR"
-Obtained via: Disassembly at offset 0xABC
-
-MEMORY ADDRESS MAP
-==================
-Key addresses extracted from mov instructions:
-
-0x108000 - CKEY signature search start address
-0x101F7C - Address loaded into r1 at offset 0x520
-0x102028 - Global data pointer address
-0x102030 - Secondary data pointer address
-0x102124 - Configuration/status pointer
-0x10211C - Function pointer table address
-0x102C00 - Memory buffer address
-0x10005 - AUX register (processor control)
-0x80009200 - Hardware register
-0x80009018 - Hardware register
-0x80009040 - Hardware register
-0x8000B000 - Hardware register
-0x8000C028 - Hardware register
-0x3005 - Timer/control register
-0x3007 - Timer/control register
-0x3040-0x3043 - Configuration registers
-0x2400 - Hardware configuration register
-0x8004 - Hardware register
-0x8010 - Hardware register
-0x7010 - Hardware register
-0x7102 - Hardware register
-
-Obtained via: Extraction of immediate values from mov/lr/sr instructions
-
-HEX DUMP OF FILE HEADER
-=======================
-Obtained via: rizin -q -a arc -b 32 -c 'px 512 @ 0' BRINGUP.bin
-0x00000000: 008e2018 08fe6080 00826168 10fe2180  .. ...`...ah..!.
-0x00000010: 087ae157 00866068 06020020 00002060  .z.W..`h... .. `
-0x00000020: 0005e167 01810f38 00080020 037ae067  ...g...8... .z.g
-0x00000030: 21030020 00002060 00864010 01fe2040  !.. .. `..@... @
-0x00000040: 03fae067 017e4150 82fdff27 027e8188  ...g.~AP...'.~..
-0x00000050: 037e4160 00860010 017a8250 04fe2040  .~A`.....z.P.. @
-0x00000060: 02feff27 0005e167 01810f38 00048167  ...'...g...8...g
-0x00000070: ffffffff 00010030 00864010 01fe2040  .......0..@... @
-0x00000080: 00810f38 00000000 00000000 00000000  ...8............
-0x00000090: 00058167 00028068 01810f38 037ae267  ...g...h...8.z.g
-0x000000a0: 037e8188 82100020 0005821f 04fe2050  .~..... ...... P
-0x000000b0: 047e6050 02040030 04908008 0490a008  .~`P...0........
-0x000000c0: 0490c008 0490e008 04880111 048a0111  ................
-0x000000d0: 048c0111 048e0111 a5050020 047ae167  ........... .z.g
-0x000000e0: ffffffff 22070020 037a8167 03fe2040  ....".. .z.g.. @
-0x000000f0: 01810f38 03fe6140 00010030 01948008  ...8..a@...0....
-0x00000100: 01884111 00810f38 04908008 0490a008  ..A....8........
-0x00000110: 04880111 21faff27 048a0111 037a8167  ....!..'.....z.g
-0x00000120: 04908008 a0f8ff27 04880111 01fe2050  .......'...... P
-0x00000130: 017e6050 00010030 01948008 01884111  .~`P...0......A.
-0x00000140: 00810f38 00000000 00000000 00000000  ...8............
-0x00000150: 0003e057 00028068 01080020 037ae267  ...W...h... .z.g
-0x00000160: 04fe2050 02150020 00004008 007c7f61  .. P... ..@..|.a
-0x00000170: 01010101 00868519 04906008 0007e157  ..........`....W
-0x00000180: 00168150 82030020 00068270 00198260  ...P... ...p...`
-0x00000190: ffffffff 41fcff27 04104008 20810f38  ....A..'..@. ..8
-0x000001a0: 00fe1f60 fffe7f61 000e0118 008e2118  ...`...a......!.
-0x000001b0: 0003e057 00915f19 02090020 00942160  ...W.._.... ..!`
-0x000001c0: 0001e067 00140160 01faff27 0003e057  ...g...`...'...W
-0x000001d0: 087e4581 00942160 02050020 0001e067  .~E...!`... ...g
-0x000001e0: 00140160 81f6ff27 0003e057 18fe2188  ...`...'...W..!.
-0x000001f0: 02020020 0001e067 187e0188 81f3ff27  ... ...g.~.....'
-
-KEY CODE SECTIONS ANALYSIS
-==========================
-
-SECTION 1: Utility Functions (0x000-0x140)
-------------------------------------------
-Purpose: Memory operations (memset, memcpy, memcmp style functions)
-Key Instructions:
-- stb r3, [r1] - byte store
-- ld.a r4, [r1, 4] - load with increment
-- st.a r4, [r3, 4] - store with increment
-- lp/lpnz - hardware loop instructions
-Obtained via: Disassembly analysis
-
-SECTION 2: Stack Frame Management (0x244-0x3AC)
------------------------------------------------
-Purpose: Function prologue/epilogue helpers
-Pattern: Multiple branch tables for different frame sizes
-Frame Sizes: 0x10, 0x14, 0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x30, 0x34, 0x38, 0x3C, 0x40, 0x44, 0x48
-Saved Registers: gp, r25, r24, r23, r22, r21, r20, r19, r18, r17, r16, r15, r14, r13, fp
-Obtained via: Disassembly at offset 0x244-0x3AC
-
-SECTION 3: CKEY Search and Processing (0x504-0x5F4)
----------------------------------------------------
-Purpose: Find and process CKEY security keys
-Entry Point: 0x504
-Search Algorithm:
-1. Load search start address 0x108000 into r14
-2. Loop: Load [r14], compare with 0x59454B43 ("CKEY")
-3. If not found, increment r14 by 4, continue
-4. If found, process 4 CKEY entries
-Obtained via: Disassembly at offset 0x504-0x5F4
-
-SECTION 4: Hardware Initialization (0x5F8-0x734)
-------------------------------------------------
-Purpose: Configure hardware registers and timers
-Key Operations:
-- Read/modify AUX register 0x10005
-- Configure bits 12-15 (status register)
-- Set processor mode bits
-- Access hardware at 0x80009200
-Obtained via: Disassembly at offset 0x5F8-0x734
-
-SECTION 5: Memory Allocation (0x738-0x920)
-------------------------------------------
-Purpose: Memory management and allocation
-Key Addresses: 0x102C00 (buffer), 0x3200 (size)
-Operations:
-- Allocate memory from pool
-- Initialize memory descriptors
-- Set up $MEM structures
-Obtained via: Disassembly at offset 0x738-0x920
-
-SECTION 6: Signature Writing (0x1300-0x1440)
---------------------------------------------
-Purpose: Create $BUP and $HEC descriptor structures
-Key Operations:
-- st 0x50554224, [r0] - Write "$BUP"
-- st 0x43454824, [r0] - Write "$HEC"
-- Write type field = 1
-- Configure hardware register 0x8004, 0x8010
-Obtained via: Disassembly at offset 0x1300-0x1440
-
-SECTION 7: Overlay Loading (0x1440-0x1700)
-------------------------------------------
-Purpose: Load and initialize overlay modules
-Module Pointer Storage: r17 + offsets
-Operations:
-- Initialize 10 overlay module structures
-- Set up function pointer tables
-- Configure module entry points
-Obtained via: Disassembly at offset 0x1440-0x1700
-
-SECTION 8: Final Initialization (0x1700-0x1FC4)
------------------------------------------------
-Purpose: Complete bringup sequence
-Operations:
-- Configure timer registers 0x3005, 0x3007
-- Set up interrupt handlers
-- Configure hardware at 0x7010, 0x7102
-- Access string table at 0x1F2C
-Obtained via: Disassembly at offset 0x1700-0x1FC4
-
-HARDWARE REGISTER ACCESS DETAILS
-================================
+Hardware Register Operations
+=============================
 
 AUX Register 0x10005:
-Access Pattern: Read-Modify-Write
-Operations:
-- lr r0, [0x10005] - Load status
-- or r0, r0, 0x1000 - Set bit 12
-- and r0, r0, 0xFFFF0FFF - Clear bits 12-15
-- sr r0, [0x10005] - Store back
-Obtained via: lr/sr instruction analysis
+  Pattern: Read-Modify-Write
+  lr r0, [0x10005]      ; Load status
+  or r0, r0, 0x1000     ; Set bit 12
+  and r0, r0, 0xFFFF0FFF ; Clear bits 12-15
+  sr r0, [0x10005]      ; Store back
 
 Timer Registers 0x3005, 0x3007:
-Purpose: Timer configuration
-Access: sr instructions (store to register)
-Values written: Calculated from configuration bytes
-Obtained via: sr instruction at offsets 0xDA4, 0xDD0
+  Purpose: Timer configuration
+  Access: sr instructions (store to register)
 
 Hardware Register 0x80009200:
-Purpose: Status/control register
-Operations:
-- ld r0, [r15] - Read (r15 = 0x80009200)
-- or r0, r0, 0x80 - Set bit 7
-- st r0, [r15] - Write back
-Obtained via: Memory access analysis at offset 0x6BC
+  ld r0, [r15]          ; Read (r15 = 0x80009200)
+  or r0, r0, 0x80       ; Set bit 7
+  st r0, [r15]          ; Write back
 
 Hardware Register 0x8000C028:
-Purpose: Unknown hardware control
-Operations:
-- ld r0, [r1] - Read
-- and r0, r0, 0xFFFEFFFF - Clear bit 16
-- st r0, [r1] - Write back
-Obtained via: Disassembly at offset 0x700
+  ld r0, [r1]           ; Read
+  and r0, r0, 0xFFFEFFFF ; Clear bit 16
+  st r0, [r1]           ; Write back
 
-REGISTER USAGE ANALYSIS
-=======================
-r0: General purpose, function argument, return value, address pointer
-r1: General purpose, function argument, size counter
-r2: General purpose, function argument, size/length
-r3: General purpose, temp, loop counter
-r4: Saved register, address pointer
-r5: Saved register, temp storage
-r6: Saved register, function pointer
-r7: Saved register, temp storage
-r8: Argument/temp
-r9: Computed address, temp
-r10: Static base, frame temp
-r11: Constant 0x01010101, temp
-r12: Stack frame size
-r13: Loop counter (initialized to 4 for CKEY processing)
-r14: Address pointer (CKEY search position)
+Key Register Usage
+==================
+See architecture.txt for complete register set
+
+r0: Function argument, return value, address pointer
+r13: Loop counter (4 for CKEY processing)
+r14: CKEY search position
 r15: Address pointer, loop counter
-r16: Saved register, address
-r17: Saved register, address
-r18: Saved register, data pointer
-r19: Saved register, data pointer
-r20: Saved register
-r21: Computed address
-r22: Constant/mask
-sp: Stack pointer
-gp: Global pointer
-fp: Frame pointer
-blink: Return address
-lp_count: Hardware loop counter
-Obtained via: Full disassembly analysis
+r17: Overlay module base pointer
+r18: Data pointer
+r19: Data pointer
 
-CALL GRAPH
+Call Graph
 ==========
-Main Function (0x000):
+Main (0x000)
   |
-  +--> Utility: memset/memcpy (0x000-0x140)
-  |
-  +--> Stack frame setup (0x244-0x3AC)
-  |
-  +--> CKEY search (0x504-0x5F4)
-  |     |
-  |     +--> Read function [r18+0xC]
-  |     +--> Verify function [r18+0x10]
-  |     +--> Process function [r19+0x1C]
-  |
-  +--> Hardware init (0x5F8-0x734)
-  |     |
-  |     +--> Call [r13] (module function)
-  |     +--> Call at 0x1980
-  |
-  +--> Memory allocation (0x738-0x920)
-  |     |
-  |     +--> Allocate from pool [r0+8]
-  |     +--> Init descriptor
-  |
-  +--> Signature write (0x1300-0x1440)
-  |     |
-  |     +--> Write $BUP
-  |     +--> Write $HEC
-  |
-  +--> Overlay init (0x1440-0x1700)
-        |
-        +--> Initialize 10 overlay modules
-        +--> Set function pointers
+  +-> Utility: memset/memcpy (0x000-0x140)
+  +-> Stack frame setup (0x244-0x3AC)
+  +-> CKEY search (0x504-0x5F4)
+  |     +-> Read function [r18+0xC]
+  |     +-> Verify function [r18+0x10]
+  |     +-> Process function [r19+0x1C]
+  +-> Hardware init (0x5F8-0x734)
+  |     +-> Call [r13] (module function)
+  |     +-> Call at 0x1980
+  +-> Memory allocation (0x738-0x920)
+  |     +-> Allocate from pool [r0+8]
+  +-> Signature write (0x1300-0x1440)
+  +-> Overlay init (0x1440-0x1700)
 
-Obtained via: Control flow analysis
-
-DESCRIPTOR STRUCTURES
-=====================
-
-$MEM Structure (16 bytes):
-Offset 0x00: Signature = "$MEM" (0x4D454D24)
-Offset 0x04: Base address
-Offset 0x08: Size
-Offset 0x0C: Type/flags
-Obtained via: Analysis from PRELOADER
-
-$BUP Structure (8 bytes):
-Offset 0x00: Signature = "$BUP" (0x50554224)
-Offset 0x04: Type = 1
-Obtained via: Disassembly at 0x13CC
-
-$HEC Structure (8 bytes):
-Offset 0x00: Signature = "$HEC" (0x43454824)
-Offset 0x04: Type = 1
-Obtained via: Disassembly at 0x13DC
-
-$ONS Structure (observed):
-Signature = "$ONS" (0x4F4E5324)
-Obtained via: String analysis
-
-$MCR Structure (observed):
-Signature = "$MCR" (0x58434D24)
-Obtained via: Disassembly at 0xABC
-
-EXECUTION FLOW SUMMARY
-======================
-1. Entry at 0x000 (utility functions)
-2. Initialize memory operations
-3. Set up stack frames
-4. Search for CKEY signatures at 0x108000
-5. Process 4 CKEY entries
-6. Configure hardware registers
-7. Allocate memory from pool
-8. Write $BUP and $HEC signatures
-9. Initialize 10 overlay modules
-10. Configure timers and final hardware
-11. Enter main processing loop
-
-Obtained via: Complete disassembly analysis
-
-ERROR CODES
+Error Codes
 ===========
-Error code 0x85: Memory descriptor validation failure
-Error code 0x9E: CKEY search failure / general error
-Error code 0xEF: Overlay processing error
-Error code 0xE0: Initialization failure
-Error code 0xF2: Configuration error
-Obtained via: mov r0, <error_code> followed by error handling branches
+See modules_overview.txt for complete list
 
-DATA STRUCTURES AT FIXED ADDRESSES
-==================================
-0x102028: Main data structure pointer
-  +0x14: Pointer to secondary structure
-  +0x18: Pointer to module table
-  +0x1C: Pointer to function table
+0x85 - Memory descriptor validation failure
+0x9E - CKEY search failure / general error
+0xEF - Overlay processing error
+0xE0 - Initialization failure
+0xF2 - Configuration error
 
-0x102030: Secondary data pointer
-  +0x08: Size/configuration field
-
-0x102124: Configuration pointer
-  +0xB0: Status flags
-  +0xCC: Callback pointer
-
-0x10211C: Function pointer storage
-  +0x04: Function pointer 1
-  +0x08: Function pointer 2
-
-Obtained via: Memory access pattern analysis
-
-SUMMARY
-=======
-BRINGUP.bin is the second-stage bootloader for Intel ME v1.
-Key functions:
-1. Search for CKEY security keys at 0x108000
-2. Create $BUP and $HEC memory descriptors
-3. Initialize 10 overlay modules
-4. Configure hardware registers
-5. Set up memory management
-6. Prepare for main firmware execution
-
-File size: 8148 bytes
-Code region: 0x000-0x1FC3 (entire file)
-String table: 0x1F2C-0x1FCC
-Entry point: 0x000
-Key signatures: CKEY, $BUP, $HEC, $ONS, $MCR
-Overlay modules: 10 (BUPET_OVL, BUPMSEQ_OVL, BUCLS_OVL, EFFS_IOVL, EFFS_OPOVL, MOFFM0_OVL, MOFFM1_OVL, SUPPORT_OVL, PKTPMINIT_OVL, ALIASCHECK_OVL)
-
+Execution Summary
+=================
+1. Initialize memory operations
+2. Set up stack frames
+3. Search for CKEY at 0x108000
+4. Process 4 CKEY entries
+5. Configure hardware registers
+6. Allocate memory from pool
+7. Write $BUP and $HEC signatures
+8. Initialize 10 overlay modules
+9. Configure timers and hardware
+10. Enter main processing loop

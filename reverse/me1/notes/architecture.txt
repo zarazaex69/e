@@ -1,15 +1,97 @@
-Target Architecture Analysis
+ME1 Architecture
+================
 
-Core Findings
-- Instruction Set: Verified as 16-bit. This corresponds to the ARCompact ISA, which uses 16-bit instructions for high code density.
-- CPU Family: ARC.
-- Data Types: Data structures (like FPT entries and module manifests) still use 32-bit values for offsets and sizes. The 16-bit CPU instructions can operate on 32-bit data.
+CPU Architecture
+----------------
+CPU Family: ARC (Argonaut RISC Core)
+ISA: ARCompact (mixed 16-bit/32-bit instruction set)
+Instruction Width: 16-bit (for code density)
+Data Width: 32-bit (offsets, sizes, pointers)
+Endianness: Little Endian
 
-Analysis Toolchain Setup
-- Tool: rizin
-- Launch Command: rizin -a arc -b 16 -B <base_addr> <file>
+Instruction Set Features:
+  - 16-bit instructions for high code density
+  - 32-bit data operations
+  - Hardware loop support (lp_count, lp_start, lp_end)
+  - AUX registers for processor control
+  - Delay slot instructions (bl.d, j.d)
+
+Register Set
+------------
+General Purpose: r0-r31
+  r0-r3: Function arguments, return values
+  r4-r11: Saved registers
+  r12: Stack frame size
+  r13-r15: Loop counters, temp storage
+  r16-r22: Saved registers, address pointers
+
+Special Purpose:
+  sp: Stack pointer
+  gp: Global pointer (position-independent code)
+  fp: Frame pointer
+  blink: Return address (link register)
+  lp_count: Hardware loop counter
+  lp_start: Hardware loop start address
+  lp_end: Hardware loop end address
+
+AUX Registers:
+  0x10005: Processor status/control
+  0x2C00-0x2C0F: Memory controller status
+
+Analysis Toolchain
+------------------
+Primary Tool: rizin v0.8.2
+
+For PRELOADER/BRINGUP analysis:
+  rizin -a arc -b 32 -c 'aaa; pd N' <file>
+
+For firmware image analysis:
+  rizin -a arc -b 16 -B <base_addr> <file>
+
+Common commands:
+  aaa - Analyze all
+  pd N - Print N disassembly instructions
+  afl - List functions
+  iz - List strings
+  px N @ addr - Hex dump N bytes at address
 
 Memory Management
-- The boot sequence reaches a point where it enables the MMU and switches from physical to virtual addressing.
-- This is evidenced by a jump (b) to a high virtual address (e.g., 0xff816682) which does not correspond to a physical file offset.
-- Next Step: The primary analysis target is now to find the code that sets up the page tables and enables the MMU. This code must execute before the jump into virtual space.
+-----------------
+Address Spaces:
+  - Physical: Used during early boot (ROM code, PRELOADER)
+  - Virtual: Enabled after MMU initialization
+
+MMU Transition:
+  - Boot starts in physical address space
+  - Page tables set up during initialization
+  - Jump to high virtual address (e.g., 0xff816682)
+  - Code must set up page tables before virtual jump
+
+Memory Types:
+  - Flash/ROM: Read-only, mapped at 0x01000000
+  - SRAM: Read-write-execute, mapped at 0x00100000
+  - Memory-mapped I/O: Hardware registers
+
+See memory_map.txt for complete address layout
+
+Data Structures
+---------------
+All data structures use 32-bit values for:
+  - Offsets
+  - Sizes
+  - Pointers
+  - Signatures
+
+Common patterns:
+  - 4-byte magic signatures (e.g., "$MEM", "CKEY")
+  - Little-endian byte order
+  - 4-byte alignment
+
+See data_structures.txt for structure definitions
+
+Next Analysis Targets
+---------------------
+1. Page table setup code (before MMU enable)
+2. Virtual address space layout (post-MMU)
+3. Code at 0xff816682 (first virtual address)
+4. MMU configuration registers

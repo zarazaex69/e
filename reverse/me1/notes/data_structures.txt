@@ -1,0 +1,115 @@
+ME1 Data Structures and Signatures
+===================================
+
+Firmware Image Structures
+--------------------------
+
+$FPT Structure (Firmware Partition Table)
+  Location: Offset 0x10 in firmware image
+  Read by: Boot ROM
+  Purpose: Describes firmware partitions and layout
+  
+  Contains:
+    - Partition entries
+    - Partition offsets and sizes
+    - Pointer to manifest
+
+$MAN Structure (Manifest)
+  Location: Offset 0x7201C in firmware image
+  Read by: Boot ROM
+  Purpose: Module metadata and security information
+  
+  Contains:
+    - Module list
+    - Load addresses
+    - Security signatures
+    - Version information
+
+$MOD Structure (Module Table)
+  Location: Offset 0x727EC in firmware image
+  Read by: Boot ROM
+  Purpose: Describes modules to load
+  
+  Contains:
+    - Module names
+    - Module sizes
+    - Module offsets in firmware
+    - Load order
+
+Memory Descriptors
+------------------
+
+$MEM Structure (16 bytes)
+  Offset 0x00: Signature = 0x4D454D24 ("$MEM")
+  Offset 0x04: Base address/pointer (4 bytes)
+  Offset 0x08: Size (4 bytes, calculated as size - 0x10)
+  Offset 0x0C: Type/flags (4 bytes, value 0x11)
+  
+  Created by: PRELOADER at offset 0x804
+  Purpose: Describes initialized memory regions
+
+$BUP Structure (8 bytes)
+  Offset 0x00: Signature = 0x50554224 ("$BUP")
+  Offset 0x04: Type = 1
+  
+  Created by: BRINGUP at offset 0x13CC
+  Purpose: BRINGUP module descriptor
+
+$HEC Structure (8 bytes)
+  Offset 0x00: Signature = 0x43454824 ("$HEC")
+  Offset 0x04: Type = 1
+  
+  Created by: BRINGUP at offset 0x13DC
+  Purpose: Unknown (possibly Hardware Event Controller)
+
+Other Signatures
+----------------
+$ONS - Signature = 0x4F4E5324
+  Location: BRINGUP offset 0xE74
+  Purpose: Unknown
+
+$MCR - Signature = 0x58434D24
+  Location: BRINGUP offset 0xABC
+  Purpose: Unknown
+
+$MCX - Signature = 0x244D4358
+  Location: BRINGUP offset 0xAC0
+  Purpose: Unknown
+
+Security Structures
+-------------------
+
+CKEY Structure
+  Signature: 0x59454B43 ("CKEY" in little-endian)
+  Location: Searched starting at 0x108000
+  Count: 4 entries processed
+  
+  Search algorithm (BRINGUP offset 0x504):
+    1. Start at r14 = 0x108000
+    2. Load [r14], compare with 0x59454B43
+    3. If not found, r14 += 4, continue
+    4. If found, process 4 CKEY entries
+  
+  Purpose: Security key validation
+
+Overlay Module Names
+--------------------
+Location: BRINGUP offset 0x1F4C - 0x1FCC
+Total: 10 modules
+
+1. BUPET_OVL (0x1F4C) - BRINGUP Ethernet Overlay
+2. BUPMSEQ_OVL (0x1F58) - BRINGUP Message Sequence Overlay
+3. BUCLS_OVL (0x1F64) - BRINGUP Classification Overlay
+4. EFFS_IOVL (0x1F70) - Embedded Flash File System I/O
+5. EFFS_OPOVL (0x1F7C) - Embedded Flash File System Operations
+6. MOFFM0_OVL (0x1F88) - Mobile Offload Firmware Module 0
+7. MOFFM1_OVL (0x1F94) - Mobile Offload Firmware Module 1
+8. SUPPORT_OVL (0x1FA0) - Support module
+9. PKTPMINIT_OVL (0x1FAC) - Packet Processing Manager Init
+10. ALIASCHECK_OVL (0x1FBC) - Alias Check module
+
+Security String
+---------------
+Location: BRINGUP offset 0x1F2C
+Content: "ME Security Key String Version 2" (31 bytes)
+Purpose: Security key version identifier

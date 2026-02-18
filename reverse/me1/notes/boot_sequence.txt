@@ -1,21 +1,199 @@
-Initial Boot Sequence Analysis (from entry 0x15210 in firmware image)
+ME1 Boot Sequence
+=================
 
-1. A block of code starting around 0x15218 zeroes out registers r2, r3, r12, r13.
-2. At 0x1524c, code reads a 32-bit word from physical address 0x2C (likely a hardware status register).
-3. The high byte of this word is checked.
-4. After initialization and checks, control is transferred via `bl` (call) to the function at 0x1665c. This appears to be the next stage of initialization.
-5. The initialization code calls fcn.0001665c.
-6. fcn.0001665c acts as a dispatcher, sequentially calling:
-   - fcn.00016444
-   - fcn.00016658
-7. Our next target is to analyze the first subroutine: fcn.00016444.
-7. Analysis of fcn.00016444 reveals it is a "trampoline" function.
-8. Its only purpose is to immediately jump (`b`) to address 0xff816682.
-9. The actual code to analyze is at the jump's destination. Our next target is 0xff816682.
-9. Function fcn.00016658 modifies the processor state:
-   - Clears bit 24 in register r13 (likely interrupt control or supervisor mode flag).
-   - Immediately calls fcn.0001690c.
-10. The purpose of fcn.0001690c must be determined next.
-10. fcn.0001690c appears to contain a loop calling fcn.0001655c.
-11. The beginning of the function is not decoding properly, possibly indicating mixed 32-bit instructions or data tables.
-12. Hypothesis: This is a polling loop waiting for a hardware state change.
+Overview
+--------
+Complete boot chain:
+  Boot ROM -> PRELOADER -> BRINGUP -> KernelPriv -> KernelNonPriv
+
+For detailed module information, see modules_overview.txt
+For memory layout, see memory_map.txt
+For data structures, see data_structures.txt
+
+┌─────────────────────────────────────────────────────────────┐
+│                      BOOT ROM (Hardware)                    │
+│ - Integrated into Intel chipset                             │
+│ - Immutable code                                            │
+│ - Starts when power is turned on                            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Boot ROM Operations                      │
+│ 1. Read $FPT (Firmware Partition Table) @ 0x10             │
+│ 2. Parse $MAN (Manifest) @ 0x7201C                          │
+│ 3. Read $MOD module table @ 0x727EC                         │
+│ 4. Load PRELOADER into memory                               │
+│ 5. Load BRINGUP into memory                                 │
+│ 6. Write BRINGUP address to [0x1001100]                     │
+│ 7. Load KernelPriv into memory                              │
+│ 8. Write KernelPriv address to vector table                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      PRELOADER.bin                          │
+│ - SP = 0x1012210 (stack)                                    │
+│ - GP = 0x10010fc (global data)                              │
+│ - Write $MEM signature                                      │
+│ - Read [0x1001100] → BRINGUP address                        │
+│ - jl [r1] → jump to BRINGUP                                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      BRINGUP.bin                            │
+│ - Search for CKEY @ 0x108000                                │
+│ - Write $BUP, $HEC signatures                               │
+│ - Initialize 10 overlay modules                             │
+│ - Configure hardware                                        │
+│ - Transfer control to KernelPriv (mechanism TBD)            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     KernelPriv.bin                          │
+│ - Privileged kernel core (240 KB)                           │
+│ - Memory and process management                             │
+│ - Access to protected resources                             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    KernelNonPriv.bin                        │
+│ - Unprivileged kernel (250 KB)                              │
+│ - Applications and services                                 │
+└─────────────────────────────────────────────────────────────┘
+
+Stage 0: Boot ROM (Hardware)
+-----------------------------
+Location: Integrated into chipset
+Type: Immutable hardware code
+Entry: Power-on
+
+Operations:
+  1. Read $FPT at offset 0x10 in firmware image
+  2. Parse $MAN (Manifest) at 0x7201C
+  3. Read $MOD module table at 0x727EC
+  4. Load PRELOADER into memory
+  5. Load BRINGUP into memory
+  6. Write BRINGUP address to [0x1001100]
+  7. Load KernelPriv into memory
+  8. Write KernelPriv address to vector table
+  9. Jump to PRELOADER
+
+Stage 1: PRELOADER
+-------------------
+Entry: 0x00000000 (physical offset in module)
+Load Address: 0x01000000 (Flash/ROM)
+Size: 4288 bytes
+
+Key actions:
+  - Initialize stack (SP = 0x1012210)
+  - Initialize global pointer (GP = 0x10010fc)
+  - Initialize SRAM controller (poll AUX 0x2C00-0x2C0F)
+  - Decompress BRINGUP to SRAM (0x00100000)
+  - Create $MEM descriptor
+  - Read BRINGUP address from [0x1001100]
+  - Jump to BRINGUP via jl [r1]
+
+Stage 2: BRINGUP
+-----------------
+Entry: 0x00000000 (physical offset in module)
+Load Address: 0x00100000 (SRAM)
+Size: 8148 bytes
+
+Key actions:
+  - Search for CKEY security keys at 0x108000
+  - Validate 4 CKEY entries
+  - Configure hardware registers
+  - Allocate memory from pool
+  - Write $BUP and $HEC signatures
+  - Initialize 10 overlay modules
+  - Configure timers and interrupts
+  - Transfer control to KernelPriv (mechanism TBD)
+
+Stage 3: KernelPriv
+-------------------
+Size: 240 KB
+Privilege: Supervisor mode
+
+Functions:
+  - Memory management
+  - Process management
+  - Access control to protected resources
+  - Hardware abstraction
+
+Stage 4: KernelNonPriv
+----------------------
+Size: 250 KB
+Privilege: User mode
+
+Functions:
+  - Application execution
+  - Service management
+  - User-level operations
+
+Firmware Image Structure
+-------------------------
+Offset 0x10: $FPT (Firmware Partition Table)
+  - Describes firmware partitions
+  - Points to manifest and modules
+
+Offset 0x7201C: $MAN (Manifest)
+  - Module metadata
+  - Security information
+  - Load addresses
+
+Offset 0x727EC: $MOD (Module Table)
+  - List of modules to load
+  - Module sizes and offsets
+  - Load order
+
+MMU Transition
+--------------
+The boot sequence includes MMU enablement:
+  - Initial execution in physical address space
+  - Jump to high virtual address (e.g., 0xff816682)
+  - Page tables must be set up before this jump
+  - Code setting up page tables executes before virtual jump
+
+Firmware Entry Point Analysis
+------------------------------
+Entry: 0x15210 in firmware image
+
+1. Register initialization
+   - Zero registers r2, r3, r12, r13 (0x15218)
+
+2. Hardware status check
+   - Read 32-bit word from physical address 0x2C (0x1524c)
+   - Check high byte (hardware status register)
+
+3. Dispatcher call
+   - Call fcn.0001665c via bl instruction
+   - fcn.0001665c acts as dispatcher, calling:
+     * fcn.00016444 - Trampoline function
+     * fcn.00016658 - Processor state modifier
+
+4. Trampoline to virtual memory
+   - fcn.00016444 immediately jumps to 0xff816682
+   - Transition from physical to virtual addressing
+   - Next analysis target: 0xff816682
+
+5. Processor state modification
+   - fcn.00016658 clears bit 24 in r13 (interrupt/supervisor mode)
+   - Call fcn.0001690c
+
+6. Hardware polling loop
+   - fcn.0001690c contains loop calling fcn.0001655c
+   - Hypothesis: Polling for hardware state change
+   - Note: Beginning doesn't decode properly (mixed 32-bit instructions or data tables)
+
+Next Analysis Targets
+---------------------
+1. BRINGUP to KernelPriv handoff mechanism
+2. Code at 0xff816682 (post-MMU virtual address)
+3. Page table setup code (executes before virtual jump)
+4. fcn.0001690c loop implementation
+5. Hardware state being polled
+6. KernelPriv entry point and initialization

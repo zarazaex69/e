@@ -1,0 +1,137 @@
+ME1 Module Overview
+===================
+
+Boot Sequence
+-------------
+Boot ROM -> PRELOADER -> BRINGUP -> KernelPriv -> KernelNonPriv
+
+Boot ROM (Hardware)
+  - Integrated into chipset
+  - Immutable code
+  - Loads and prepares modules
+  - Sets up initial vectors
+
+Module Details
+--------------
+
+PRELOADER.bin
+  Size: 4288 bytes (0x10C0)
+  Load Address: 0x01000000 (Flash/ROM)
+  Entry Point: 0x00000000 (physical offset)
+  Role: Stage 1 bootloader
+  
+  Key Functions:
+    - Initialize stack (SP = 0x1012210) and global pointer (GP = 0x10010fc)
+    - Initialize SRAM controller (polling AUX 0x2C00-0x2C0F)
+    - Decompress next stage to SRAM (0x00100000)
+    - Create $MEM descriptor
+    - Jump to BRINGUP via [0x1001100]
+  
+  Critical Functions:
+    0x0BB0 - Hardware initialization (SRAM controller polling)
+    0x0C78 - Main loader
+    0x0654 - Decompressor (LZ/Huffman)
+    0x07F4 - Memory size validation
+  
+  Exit: Indirect jump to 0x00100000 (BRINGUP start)
+
+BRINGUP.bin
+  Size: 8148 bytes (0x1FC4)
+  Load Address: 0x00100000 (SRAM)
+  Entry Point: 0x00000000 (physical offset)
+  Role: Stage 2 bootloader
+  
+  Key Functions:
+    - Search for CKEY security keys at 0x108000
+    - Validate security keys (4 entries)
+    - Configure hardware registers
+    - Allocate memory from pool
+    - Create $BUP and $HEC descriptors
+    - Initialize 10 overlay modules
+    - Configure timers and interrupts
+  
+  Critical Sections:
+    0x000-0x140 - Utility functions (memset/memcpy/memcmp)
+    0x244-0x3AC - Stack frame management
+    0x504-0x5F4 - CKEY search and processing
+    0x5F8-0x734 - Hardware initialization
+    0x738-0x920 - Memory allocation
+    0x1300-0x1440 - Signature writing ($BUP, $HEC)
+    0x1440-0x1700 - Overlay loading
+    0x1700-0x1FC4 - Final initialization
+  
+  String Table: 0x1F2C-0x1FCC
+  Overlay Names: 0x1F4C-0x1FCC
+
+Overlay Modules
+  Loaded by: BRINGUP
+  Count: 10 modules
+  Purpose: Extend functionality dynamically
+  
+  See data_structures.txt for complete list
+
+KernelPriv.bin
+  Size: 240 KB
+  Privilege: Supervisor mode
+  Role: Privileged kernel core
+  
+  Key Functions:
+    - Memory management
+    - Process management
+    - Access control to protected resources
+    - Hardware abstraction layer
+  
+  Loaded by: Boot ROM
+  Entry: Set by Boot ROM in vector table
+
+KernelNonPriv.bin
+  Size: 250 KB
+  Privilege: User mode
+  Role: Unprivileged kernel
+  
+  Key Functions:
+    - Application execution
+    - Service management
+    - User-level operations
+  
+  Loaded by: Boot ROM or KernelPriv
+  Entry: Called from KernelPriv
+
+Module Dependencies
+-------------------
+Boot ROM requirements:
+  - Firmware image accessible
+  - $FPT at offset 0x10
+  - $MAN at offset 0x7201C
+  - $MOD at offset 0x727EC
+
+PRELOADER requirements:
+  - Flash/ROM readable at 0x01000000
+  - SRAM controller responsive at 0x2C00-0x2C0F
+  - Compressed data available in Flash
+  - BRINGUP address written to [0x1001100] by Boot ROM
+
+BRINGUP requirements:
+  - SRAM initialized and writable at 0x00100000
+  - CKEY structures present at 0x108000
+  - Hardware registers accessible
+  - Overlay module data available
+  - KernelPriv loaded by Boot ROM
+
+KernelPriv requirements:
+  - BRINGUP initialization complete
+  - Hardware configured
+  - Memory management structures ready
+
+KernelNonPriv requirements:
+  - KernelPriv running
+  - Process management initialized
+
+Error Codes
+-----------
+BRINGUP error codes:
+  0x85 - Memory descriptor validation failure
+  0x9E - CKEY search failure / general error
+  0xEF - Overlay processing error
+  0xE0 - Initialization failure
+  0xF2 - Configuration error

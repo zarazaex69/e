@@ -1,0 +1,100 @@
+ME1 Memory Map and Address Space
+================================
+
+Physical Memory Layout
+----------------------
+0x01000000 - Flash/ROM (Read Only)
+  - Firmware image base
+  - PRELOADER.bin mapped here
+  - Entry point: 0x01012210
+  - Contains $FPT, $MAN, $MOD structures
+
+0x00100000 - SRAM (Read/Write, Executable)
+  - Decompressed code destination
+  - BRINGUP.bin executes from here
+  - KernelPriv.bin loaded here (240 KB)
+  - KernelNonPriv.bin loaded here (250 KB)
+  - Size: Variable, configured by memory controller
+
+0x00002C00-0x00002C0F - Memory Controller I/O Registers
+  - Used for SRAM initialization
+  - Polling these registers indicates memory ready state
+
+Hardware Registers
+------------------
+AUX Registers:
+  0x10005 - Processor status/control register
+    - Bit 12: Modified during initialization
+    - Read-Modify-Write pattern common
+
+  0x2C00-0x2C0F - Memory controller status
+    - Polled during SRAM initialization
+    - Must return "ready" state for boot to proceed
+
+Memory-Mapped Hardware:
+  0x80009200 - Status/control register
+  0x8000B000 - Hardware register
+  0x8000C028 - Hardware control
+  0x80009018 - Hardware register
+  0x80009040 - Hardware register
+
+  Timer Registers:
+    0x3005, 0x3007 - Timer configuration
+    0x3040-0x3043 - Configuration registers
+
+  Other Hardware:
+    0x2400 - Hardware configuration
+    0x8004, 0x8010 - Hardware control
+    0x7010, 0x7102 - Hardware registers
+
+Firmware Image Structures
+-------------------------
+0x10 - $FPT (Firmware Partition Table)
+  - Read by Boot ROM
+  - Describes firmware partitions
+  - Points to manifest
+
+0x7201C - $MAN (Manifest)
+  - Read by Boot ROM
+  - Module metadata
+  - Security information
+  - Load addresses
+
+0x727EC - $MOD (Module Table)
+  - Read by Boot ROM
+  - List of modules to load
+  - Module sizes and offsets
+  - Load order
+
+Global Data Structures
+----------------------
+0x10010fc - Global Pointer (GP) base
+  - Points to Global Data Table
+  - Used for position-independent code
+
+0x1001100 - Jump vector address
+  - Contains pointer to BRINGUP (0x00100000)
+  - Written by Boot ROM
+  - Used for PRELOADER -> BRINGUP handoff
+
+0x1012210 - Initial Stack Pointer
+  - Top of stack in SRAM region
+
+Vector Table - Location TBD
+  - KernelPriv entry point
+  - Written by Boot ROM
+  - Used for BRINGUP -> KernelPriv handoff
+
+BRINGUP-specific addresses:
+  0x102028 - Main data structure pointer
+  0x102030 - Secondary data pointer
+  0x102124 - Configuration pointer
+  0x10211C - Function pointer storage
+  0x102C00 - Memory buffer address
+  0x108000 - CKEY signature search start address
+
+Key Search Addresses
+--------------------
+0x108000 - CKEY signature search location
+  - Searched for 0x59454B43 ("CKEY" in little-endian)
+  - Contains security key structures
