@@ -5,9 +5,31 @@ See modules_overview.txt for high-level overview
 See architecture.txt for CPU/ISA details
 See memory_map.txt for address layout
 See data_structures.txt for structure definitions
+See code/reconstructed/bringup_logic.c for C reconstruction
 
 File: 8148 bytes (0x1FC4)
 Functions: 1 main function (548 instructions)
+Reconstructed: Full C implementation with proven addresses and structures
+
+Proven Memory Addresses
+=======================
+
+Primary Structure: 0x00102028
+  +0x14: func_read_ptr (function table for read/verify)
+  +0x1C: func_proc_ptr (function table for process/dispatch)
+
+CKEY Search: 0x00108000 (start address)
+  Signature: 0x59454B43 ("CKEY" little endian)
+  Entry Count: 4
+
+List Management:
+  Head Pointer: 0x0010201C
+  Buffer Start: 0x0010203C
+  Buffer End: 0x00102078
+  Entry Size: 0x0C (12 bytes)
+  Structure: data(+0x00), next(+0x04), prev(+0x08)
+
+Data Address: 0x00101F7C
 
 Code Sections
 =============
@@ -15,6 +37,7 @@ Code Sections
 Utility Functions (0x000-0x140)
   Purpose: Memory operations (memset, memcpy, memcmp)
   Instructions: stb, ld.a, st.a, lp/lpnz (hardware loops)
+  Reconstructed: bringup_memset(), bringup_memcpy()
 
 Stack Frame Management (0x244-0x3AC)
   Purpose: Function prologue/epilogue helpers
@@ -36,6 +59,13 @@ CKEY Search and Processing (0x504-0x5F4)
     0x57C: sub.f 0, r0, 0x59454b43
     0x584: bnz 0x574
     0x58C: mov r13, 4
+  
+  Function Calls per Entry:
+    1. Read: [r18+0x0C] - read function
+    2. Verify: [r18+0x10] - verify function (returns status)
+    3. Process: [r19+0x1C] - process function
+  
+  Reconstructed: ckey_search_and_process()
 
 Hardware Initialization (0x5F8-0x734)
   Purpose: Configure hardware registers and timers
@@ -44,6 +74,22 @@ Hardware Initialization (0x5F8-0x734)
     - Configure bits 12-15 (status register)
     - Access hardware at 0x80009200
     - Set processor mode bits
+  
+  Proven Sequence:
+    1. lr r0, [0x10005]
+    2. and r1, r0, 0xF000FFFF (mask low)
+    3. and r0, r0, 0xFFFF0FFF (clear bits 12-15)
+    4. or r0, r0, 0x3000 (set bits 12-13)
+    5. sr r0, [0x10005]
+    6. ld r0, [0x80009200]
+    7. or r0, r0, 0x80 (set bit 7)
+    8. st r0, [0x80009200]
+  
+  Hardware Writes:
+    sr 0x2C, [0x8004]
+    sr 4, [0x8010]
+  
+  Reconstructed: hardware_init()
 
 Memory Allocation (0x738-0x920)
   Purpose: Memory management and allocation
@@ -56,17 +102,33 @@ Memory Allocation (0x738-0x920)
 Signature Writing (0x1300-0x1440)
   Purpose: Create $BUP and $HEC descriptors
   
-  $BUP Creation (0x13CC):
-    st 0x50554224, [r0]  ; Write "$BUP"
-    st 1, [r0, 4]        ; Type = 1
+  $BUP Allocation and Creation (0x1160-0x13CC):
+    Allocation:
+      ld r4, [r13, 0xC]    ; get allocator function
+      mov r1, 5            ; param = 5
+      mov r3, 0xEC         ; size = 236 bytes
+      jl.d [r4]            ; call allocator
+    
+    Descriptor Write:
+      st 0x50554224, [r0]  ; Write "$BUP" signature
+      st 1, [r0, 4]        ; Type = 1
   
-  $HEC Creation (0x13DC):
-    st 0x43454824, [r0]  ; Write "$HEC"
-    st 1, [r0, 4]        ; Type = 1
+  $HEC Allocation and Creation (0x1174-0x13DC):
+    Allocation:
+      ld r4, [r13, 0xC]    ; get allocator function
+      mov r1, 6            ; param = 6
+      mov r3, 0x5C         ; size = 92 bytes
+      jl.d [r4]            ; call allocator
+    
+    Descriptor Write:
+      st 0x43454824, [r0]  ; Write "$HEC" signature
+      st 1, [r0, 4]        ; Type = 1
   
   Hardware Config:
-    - Configure register 0x8004
-    - Configure register 0x8010
+    sr 0x2C, [0x8004]
+    sr 4, [0x8010]
+  
+  Reconstructed: allocate_descriptor(), write_bup_descriptor(), write_hec_descriptor()
 
 Overlay Loading (0x1440-0x1700)
   Purpose: Load and initialize overlay modules
@@ -76,14 +138,58 @@ Overlay Loading (0x1440-0x1700)
     - Initialize module structures
     - Set up function pointer tables
     - Configure module entry points
+  
+  Module Names (0x1F4C-0x1FCC):
+    1. BUPET_OVL (0x1F4C)
+    2. BUPMSEQ_OVL (0x1F58)
+    3. BUCLS_OVL (0x1F64)
+    4. EFFS_IOVL (0x1F70)
+    5. EFFS_OPOVL (0x1F7C)
+    6. MOFFM0_OVL (0x1F88)
+    7. MOFFM1_OVL (0x1F94)
+    8. SUPPORT_OVL (0x1FA0)
+    9. PKTPMINIT_OVL (0x1FAC)
+    10. ALIASCHECK_OVL (0x1FBC)
+  
+  Reconstructed: overlay_init()
 
-Final Initialization (0x1700-0x1FC4)
-  Purpose: Complete bringup sequence
+Main Polling Loop (0x1800-0x1FC4)
+  Purpose: Main event processing loop
   Operations:
-    - Configure timer registers 0x3005, 0x3007
-    - Set up interrupt handlers
-    - Configure hardware at 0x7010, 0x7102
-    - Access string table at 0x1F2C
+    - Poll AUX registers 0x7F, 0x7E, 0x7B, 0x7D
+    - Check list head vs list start
+    - Process list entries
+    - Execute flag 1 instruction on zero values
+  
+  Polling Pattern:
+    lr r0, [0x7F]
+    and r1, r0, 0xFF
+    sub.f 0, r1, 0
+    bnz (skip)
+    flag 1
+  
+  List Processing:
+    ld r1, [0x10201C]    ; load list head
+    mov r0, 0x10203C     ; list start
+    sub.f 0, r1, r0      ; compare
+    bnz (process)        ; if different, process entry
+  
+  Reconstructed: main_loop(), process_list_entry()
+
+Module Handoff (0x1712-0x1715)
+  Purpose: Transfer control to next module
+  Operations:
+    ld r4, [r0]          ; load entry point from module struct
+    ld r1, [r0, 0x30]    ; load context from +0x30
+    j.d [r4]             ; jump to entry
+    mov r2, 0xB          ; argument = 11
+  
+  Module Structure:
+    +0x00: entry point
+    +0x04: flags
+    +0x30: context pointer
+  
+  Reconstructed: module_handoff()
 
 String Table (0x1F2C-0x1FCC)
 =============================
@@ -160,13 +266,47 @@ See modules_overview.txt for complete list
 
 Execution Summary
 =================
-1. Initialize memory operations
-2. Set up stack frames
-3. Search for CKEY at 0x108000
-4. Process 4 CKEY entries
-5. Configure hardware registers
-6. Allocate memory from pool
-7. Write $BUP and $HEC signatures
-8. Initialize 10 overlay modules
-9. Configure timers and hardware
-10. Enter main processing loop
+1. Setup stack frame (0xE8 bytes)
+2. Load primary structure from 0x102028
+3. Extract function pointers (+0x14, +0x1C)
+4. Search for CKEY signature at 0x108000
+5. Process 4 CKEY entries (read/verify/process)
+6. Initialize hardware (AUX 0x10005, 0x80009200)
+7. Allocate $BUP descriptor (param=5, size=0xEC)
+8. Allocate $HEC descriptor (param=6, size=0x5C)
+9. Write signatures (0x50554224, 0x43454824)
+10. Configure hardware registers (0x8004, 0x8010)
+11. Initialize 10 overlay modules
+12. Enter main polling loop (AUX 0x7F-0x7D)
+13. Process list entries (0x10201C-0x10203C)
+14. Module handoff with argument 11
+
+Proven Data Structures
+======================
+
+Primary Structure (0x102028):
+  +0x14: func_read_ptr -> read/verify function table
+  +0x1C: func_proc_ptr -> process/dispatch function table
+
+Function Read Table (r18):
+  +0x0C: read_func
+  +0x10: verify_func
+
+Function Process Table (r19):
+  +0x1C: process_func
+  +0x24: dispatch_func
+
+List Entry (size 0x0C):
+  +0x00: data pointer
+  +0x04: next pointer
+  +0x08: prev pointer
+
+Module Structure:
+  +0x00: entry point
+  +0x04: flags
+  +0x30: context pointer
+
+Descriptor Structure:
+  +0x00: signature (4 bytes)
+  +0x04: type (4 bytes)
+  Remaining: descriptor-specific data

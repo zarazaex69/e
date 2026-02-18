@@ -5,15 +5,17 @@ See modules_overview.txt for high-level overview
 See architecture.txt for CPU/ISA details
 See memory_map.txt for address layout
 See data_structures.txt for structure definitions
+See code/reconstructed/preloader_logic.c for C reconstruction
 
 File: 4288 bytes (0x10C0)
 Functions: 1 main function (339 instructions)
+Reconstructed: Full C implementation with proven initialization sequence
 
 Entry Point Disassembly
 =======================
 
 0x000: mov sp, 0x1012210
-  Initialize stack pointer
+  Initialize stack pointer to top of module
 
 0x008: mov gp, 0x10010fc
   Initialize global pointer (position-independent code)
@@ -23,6 +25,7 @@ Entry Point Disassembly
 
 0x014: bl 0x00000bb0
   Call hardware initialization (SRAM controller)
+  Critical: Must complete before decompression
 
 0x018: mov r0, 0x10010fc
 0x020: ld r0, [r0]
@@ -31,6 +34,7 @@ Entry Point Disassembly
 0x024: bl.d 0x00000c78
 0x028: mov fp, 0
   Call decompressor (delay slot: clear frame pointer)
+  Decompresses BRINGUP from Flash to SRAM
 
 0x02C: mov r0, 0x1001100
 0x034: ld r1, [r0]
@@ -39,16 +43,19 @@ Entry Point Disassembly
 0x038: lr r0, [0x10005]
 0x040: or r0, r0, 0x1000
   Read AUX register, set bit 12 (processor config)
+  Enables cache/MMU features
 
 0x048: jl [r1]
   Jump to BRINGUP at 0x00100000
+
+Reconstructed: _start()
 
 $MEM Descriptor Creation
 ========================
 See data_structures.txt for structure definition
 
 0x804: st 0x4d454d24, [r0]
-  Write "$MEM" signature (0x4D454D24)
+  Write "$MEM" signature (0x4D454D24 little endian)
 
 0x80C: sub r1, r1, 0x10
   Calculate size (size - 0x10)
@@ -65,6 +72,14 @@ See data_structures.txt for structure definition
 
 0x81C: j.d [blink]
   Return (delay slot)
+
+Structure:
+  +0x00: signature (0x4D454D24 "$MEM")
+  +0x04: base address
+  +0x08: size
+  +0x0C: type/flags (0x11)
+
+Reconstructed: Part of unpack_next_stage()
 
 Key Register Usage
 ==================
@@ -89,6 +104,14 @@ Key Functions
   Method: Poll AUX registers 0x2C00-0x2C0F
   Critical: Must return "ready" state or boot hangs
   Pattern: Read register pairs, wait for condition
+  Loop Count: 0x10 (16 banks/registers)
+  Algorithm:
+    - Read status_low from AUX[current]
+    - Read status_high from AUX[current+1]
+    - Check if bank ready (bitwise comparison)
+    - If not ready, spin wait
+    - Move to next bank pair (current += 2)
+  Reconstructed: init_memory_controller()
 
 0x0C78 - Main Loader
   Purpose: Decompress BRINGUP to SRAM
@@ -96,15 +119,19 @@ Key Functions
   Algorithm: Custom LZ/Huffman
   Source: Compressed data from Flash
   Destination: SRAM at 0x00100000
+  Success: Writes $MEM signature
+  Reconstructed: unpack_next_stage()
 
 0x0654 - Decompressor
   Algorithm: LZ/Huffman variant
   Output: Decompressed code in SRAM
   Artifact: Writes $MEM signature on success
+  Reconstructed: decompress_lz()
 
 0x07F4 - Memory Size Validation
   Purpose: Validate memory region sizes
   Used by: Decompressor and allocator
+  Reconstructed: is_bank_ready()
 
 0x0594 - Memory/Configuration Access
   Purpose: Access memory and configuration structures
@@ -118,17 +145,63 @@ AUX 0x10005: Processor status/control
   Read: lr r0, [0x10005]
   Modify: or r0, r0, 0x1000 (set bit 12)
   Write: sr r0, [0x10005]
+  Purpose: Enable cache/MMU features before handoff
 
 AUX 0x2C00-0x2C0F: Memory controller status
   Polled during SRAM initialization
   Must return "ready" for boot to proceed
+  Access Pattern: Read pairs (0x2C00+0x2C01, 0x2C02+0x2C03, etc.)
+  Loop Count: 16 iterations (0x10)
+
+Proven Constants
+================
+
+Stack Pointer: 0x01012210 (top of module)
+Global Pointer: 0x010010FC (data section)
+Jump Target Address: 0x01001100 (contains 0x00100000)
+BRINGUP Entry: 0x00100000 (SRAM)
+Stack Frame: 0x10 (16 bytes)
+
+AUX Register Base: 0x2C00 (memory controller)
+Status Register: 0x10005 (processor control)
+Enable Bit: 0x1000 (bit 12)
+
+$MEM Signature: 0x4D454D24 ("$MEM" little endian)
+$MEM Type/Flags: 0x11
 
 Execution Summary
 =================
 1. Initialize SP (0x1012210) and GP (0x10010fc)
 2. Allocate stack frame (16 bytes)
 3. Initialize SRAM controller (0xBB0)
+   - Poll AUX 0x2C00-0x2C0F (16 banks)
+   - Wait for "ready" state
 4. Decompress BRINGUP to SRAM (0xC78)
+   - Source: Flash (compressed)
+   - Destination: 0x00100000 (SRAM)
+   - Algorithm: Custom LZ/Huffman
 5. Create $MEM descriptor
+   - Signature: 0x4D454D24
+   - Base address, size, type (0x11)
 6. Configure processor status (set bit 12)
+   - Enable cache/MMU features
 7. Jump to BRINGUP at [0x1001100] = 0x00100000
+
+Boot Flow
+=========
+ROM -> PRELOADER (Flash 0x01000000)
+  |
+  +-> Initialize SRAM controller
+  +-> Decompress BRINGUP
+  +-> Write $MEM descriptor
+  +-> Enable processor features
+  |
+  v
+BRINGUP (SRAM 0x00100000)
+
+Critical Dependencies
+=====================
+1. SRAM must be initialized before decompression
+2. Decompression must succeed before handoff
+3. Processor features must be enabled before jump
+4. $MEM descriptor marks successful initialization

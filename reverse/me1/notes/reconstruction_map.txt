@@ -1,0 +1,367 @@
+RECONSTRUCTION MAPPING
+======================
+
+This document maps disassembly analysis to reconstructed C code.
+Use this to navigate between documentation and implementation.
+
+PRELOADER Module
+================
+
+Documentation: reverse/me1/notes/preloader.txt
+Reconstruction: code/reconstructed/preloader_logic.c
+
+Entry Point (0x000-0x048)
+  Disassembly: preloader.txt lines 17-48
+  C Function: _start()
+  Key Operations:
+    - SP/GP initialization
+    - Stack frame allocation
+    - Hardware init call
+    - Decompression call
+    - Processor config
+    - Jump to BRINGUP
+
+Hardware Init (0x0BB0)
+  Disassembly: preloader.txt lines 95-108
+  C Function: init_memory_controller()
+  Proven Values:
+    - AUX base: 0x2C00
+    - Loop count: 0x10 (16 banks)
+    - Register pairs: current, current+1
+  Algorithm:
+    - Poll register pairs
+    - Check ready state
+    - Increment by 2
+    - Repeat 16 times
+
+Decompressor (0x0C78, 0x0654)
+  Disassembly: preloader.txt lines 110-116
+  C Function: unpack_next_stage(), decompress_lz()
+  Proven Values:
+    - Target: 0x00100000 (SRAM)
+    - Signature: 0x4D454D24 ("$MEM")
+  Operations:
+    - Decompress from Flash
+    - Write to SRAM
+    - Create $MEM descriptor
+
+$MEM Descriptor (0x804-0x820)
+  Disassembly: preloader.txt lines 50-68
+  C Code: Part of unpack_next_stage()
+  Structure:
+    +0x00: signature (0x4D454D24)
+    +0x04: base address
+    +0x08: size
+    +0x0C: type/flags (0x11)
+
+Constants
+  Disassembly: preloader.txt lines 142-154
+  C Defines:
+    - SP_VAL: 0x01012210
+    - GP_VAL: 0x010010FC
+    - TARGET_SRAM_ADDR: 0x00100000
+    - MAGIC_SIGNATURE: 0x4D454D24
+    - AUX_SRAM_CTRL_BASE: 0x2C00
+    - AUX_MMU_CTRL: 0x10005
+
+
+BRINGUP Module
+==============
+
+Documentation: reverse/me1/notes/bringup.txt
+Reconstruction: code/reconstructed/bringup_logic.c
+
+Entry Point (0x320-0x340)
+  Disassembly: bringup.txt lines 85-98
+  C Function: bringup_entry()
+  Proven Values:
+    - Stack frame: 0xE8 (232 bytes)
+    - Primary struct: 0x102028
+    - CKEY start: 0x108000
+    - Data addr: 0x101F7C
+  Operations:
+    - Load primary structure
+    - Extract function pointers
+    - Call CKEY search
+    - Hardware init
+    - Descriptor allocation
+    - Overlay init
+    - Main loop
+
+CKEY Search (0x504-0x5F4)
+  Disassembly: bringup.txt lines 36-58
+  C Function: ckey_search_and_process()
+  Proven Values:
+    - Start: 0x108000
+    - Signature: 0x59454B43 ("CKEY")
+    - Entry count: 4
+  Algorithm:
+    - Search for signature
+    - Process 4 entries
+    - Call read/verify/process functions
+  Function Pointers:
+    - Read: [r18+0x0C]
+    - Verify: [r18+0x10]
+    - Process: [r19+0x1C]
+
+Hardware Init (0x5F8-0x734)
+  Disassembly: bringup.txt lines 60-83
+  C Function: hardware_init()
+  Proven Values:
+    - AUX status: 0x10005
+    - HW register: 0x80009200
+    - Masks: 0xF000FFFF, 0xFFFF0FFF
+    - Set bits: 0x3000, 0x80
+  Operations:
+    - Read AUX status
+    - Apply masks
+    - Set control bits
+    - Write to hardware
+
+Descriptor Allocation (0x1160-0x1440)
+  Disassembly: bringup.txt lines 85-120
+  C Functions: allocate_descriptor(), write_bup_descriptor(), write_hec_descriptor()
+  
+  $BUP Descriptor:
+    - Param: 5
+    - Size: 0xEC (236 bytes)
+    - Signature: 0x50554224 ("$BUP")
+    - Type: 1
+  
+  $HEC Descriptor:
+    - Param: 6
+    - Size: 0x5C (92 bytes)
+    - Signature: 0x43454824 ("$HEC")
+    - Type: 1
+  
+  Hardware Config:
+    - sr 0x2C, [0x8004]
+    - sr 4, [0x8010]
+
+Overlay Init (0x1440-0x1700)
+  Disassembly: bringup.txt lines 122-141
+  C Function: overlay_init()
+  String Table: 0x1F4C-0x1FCC
+  Module Count: 10
+  Names:
+    1. BUPET_OVL
+    2. BUPMSEQ_OVL
+    3. BUCLS_OVL
+    4. EFFS_IOVL
+    5. EFFS_OPOVL
+    6. MOFFM0_OVL
+    7. MOFFM1_OVL
+    8. SUPPORT_OVL
+    9. PKTPMINIT_OVL
+    10. ALIASCHECK_OVL
+
+Main Loop (0x1800-0x1FC4)
+  Disassembly: bringup.txt lines 143-165
+  C Function: main_loop()
+  Proven Values:
+    - Poll registers: 0x7F, 0x7E, 0x7B, 0x7D
+    - List head: 0x10201C
+    - List start: 0x10203C
+    - List end: 0x102078
+  Operations:
+    - Poll AUX registers
+    - Check for zero values
+    - Execute flag 1 instruction
+    - Process list entries
+
+List Processing
+  Disassembly: bringup.txt lines 167-180
+  C Function: process_list_entry()
+  Structure (size 0x0C):
+    +0x00: data pointer
+    +0x04: next pointer
+    +0x08: prev pointer
+  Operations:
+    - Unlink entry
+    - Update next/prev pointers
+
+Module Handoff (0x1712-0x1715)
+  Disassembly: bringup.txt lines 182-197
+  C Function: module_handoff()
+  Module Structure:
+    +0x00: entry point
+    +0x04: flags
+    +0x30: context pointer
+  Proven Values:
+    - Argument: 0xB (11)
+  Operations:
+    - Load entry point
+    - Load context
+    - Jump with argument
+
+Utility Functions (0x000-0x140)
+  Disassembly: bringup.txt lines 17-20
+  C Functions: bringup_memset(), bringup_memcpy()
+  Instructions: stb, ld.a, st.a, lp
+
+
+DATA STRUCTURES
+===============
+
+Primary Structure (0x102028)
+  Documentation: bringup.txt lines 199-212
+  C Type: primary_struct_t
+  Offsets:
+    +0x14: func_read_ptr
+    +0x1C: func_proc_ptr
+
+Function Read Table
+  Documentation: bringup.txt lines 214-217
+  C Type: func_read_table_t
+  Offsets:
+    +0x0C: read_func
+    +0x10: verify_func
+
+Function Process Table
+  Documentation: bringup.txt lines 219-223
+  C Type: func_proc_table_t
+  Offsets:
+    +0x1C: process_func
+    +0x24: dispatch_func
+
+List Entry
+  Documentation: bringup.txt lines 225-229
+  C Type: list_entry_t
+  Size: 0x0C (12 bytes)
+  Offsets:
+    +0x00: data
+    +0x04: next
+    +0x08: prev
+
+Module Structure
+  Documentation: bringup.txt lines 231-235
+  C Type: module_struct_t
+  Offsets:
+    +0x00: entry
+    +0x04: flags
+    +0x30: context
+
+Descriptor Structure
+  Documentation: bringup.txt lines 237-241
+  C Types: bup_descriptor_t, hec_descriptor_t
+  Offsets:
+    +0x00: signature
+    +0x04: type
+
+
+PROVEN CONSTANTS
+================
+
+PRELOADER
+---------
+Stack Pointer: 0x01012210
+Global Pointer: 0x010010FC
+BRINGUP Entry: 0x00100000
+$MEM Signature: 0x4D454D24
+AUX SRAM Base: 0x2C00
+AUX MMU Control: 0x10005
+Enable Bit: 0x1000
+Loop Count: 0x10
+
+BRINGUP
+-------
+Primary Struct: 0x00102028
+CKEY Start: 0x00108000
+CKEY Signature: 0x59454B43
+CKEY Count: 4
+List Head: 0x0010201C
+List Start: 0x0010203C
+List End: 0x00102078
+Data Address: 0x00101F7C
+
+$BUP Signature: 0x50554224
+$BUP Param: 5
+$BUP Size: 0xEC (236 bytes)
+
+$HEC Signature: 0x43454824
+$HEC Param: 6
+$HEC Size: 0x5C (92 bytes)
+
+AUX Status: 0x10005
+HW Register: 0x80009200
+HW Reg 8004: 0x8004
+HW Reg 8010: 0x8010
+
+Poll Registers: 0x7F, 0x7E, 0x7B, 0x7D
+Module Argument: 0xB (11)
+Stack Frame: 0xE8 (232 bytes)
+
+
+VERIFICATION CHECKLIST
+======================
+
+Use this to verify reconstruction accuracy:
+
+PRELOADER:
+[ ] SP initialized to 0x01012210
+[ ] GP initialized to 0x010010FC
+[ ] Stack frame 0x10 bytes
+[ ] SRAM init polls 0x2C00-0x2C0F
+[ ] Loop count 0x10 (16 iterations)
+[ ] Decompression target 0x00100000
+[ ] $MEM signature 0x4D454D24
+[ ] Processor bit 12 set before jump
+[ ] Jump target from [0x1001100]
+
+BRINGUP:
+[ ] Stack frame 0xE8 bytes
+[ ] Primary struct loaded from 0x102028
+[ ] Function pointers at +0x14, +0x1C
+[ ] CKEY search starts at 0x108000
+[ ] CKEY signature 0x59454B43
+[ ] 4 CKEY entries processed
+[ ] $BUP: param=5, size=0xEC, sig=0x50554224
+[ ] $HEC: param=6, size=0x5C, sig=0x43454824
+[ ] Hardware writes: 0x2C to [0x8004], 4 to [0x8010]
+[ ] 10 overlay modules initialized
+[ ] Main loop polls 0x7F, 0x7E, 0x7B, 0x7D
+[ ] List entry size 0x0C
+[ ] Module handoff argument 0xB
+
+
+CROSS-REFERENCE INDEX
+=====================
+
+By Address:
+  0x00100000 -> BRINGUP entry point (SRAM)
+  0x00102028 -> Primary structure (BRINGUP)
+  0x0010201C -> List head pointer (BRINGUP)
+  0x0010203C -> List buffer start (BRINGUP)
+  0x00102078 -> List buffer end (BRINGUP)
+  0x00108000 -> CKEY search start (BRINGUP)
+  0x01000000 -> PRELOADER base (Flash)
+  0x010010FC -> Global pointer (PRELOADER)
+  0x01001100 -> Jump target address (PRELOADER)
+  0x01012210 -> Stack pointer (PRELOADER)
+
+By Signature:
+  0x4D454D24 -> "$MEM" (PRELOADER)
+  0x50554224 -> "$BUP" (BRINGUP)
+  0x43454824 -> "$HEC" (BRINGUP)
+  0x59454B43 -> "CKEY" (BRINGUP)
+
+By Function:
+  _start() -> PRELOADER entry (0x000)
+  init_memory_controller() -> PRELOADER SRAM init (0x0BB0)
+  unpack_next_stage() -> PRELOADER decompressor (0x0C78)
+  bringup_entry() -> BRINGUP entry (0x320)
+  ckey_search_and_process() -> BRINGUP CKEY (0x504)
+  hardware_init() -> BRINGUP hardware (0x5F8)
+  allocate_descriptor() -> BRINGUP allocation (0x1160)
+  overlay_init() -> BRINGUP overlays (0x1440)
+  main_loop() -> BRINGUP polling (0x1800)
+  module_handoff() -> BRINGUP handoff (0x1712)
+
+By Structure:
+  primary_struct_t -> 0x102028
+  func_read_table_t -> [0x102028+0x14]
+  func_proc_table_t -> [0x102028+0x1C]
+  list_entry_t -> 0x10203C-0x102078
+  module_struct_t -> Used in handoff
+  bup_descriptor_t -> Allocated, size 0xEC
+  hec_descriptor_t -> Allocated, size 0x5C
