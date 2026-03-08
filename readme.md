@@ -42,6 +42,7 @@ I aim to fully analyze the Intel Management Engine using r2, Rizin, and Ghidra. 
 
 **UPD:** я вернусь к проекту, тк все мои остальные идеи показались мне бесполезными
  
+**UPD:** я сейчас занят написанием декомпилятора, проект опять временно заброшен
 </details>
 <div align="center">
 
