@@ -2,9 +2,6 @@
 
 <img src="asset/logo.png" width="150">
 
-![License](https://img.shields.io/badge/license-BSD--3--Clause-0D1117?style=flat-square&logo=open-source-initiative&logoColor=green&labelColor=0D1117)
-
-
 </div>
 
 
